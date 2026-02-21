@@ -1,0 +1,10 @@
+{
+  "name": "hackeurope",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix lambda install",
+    "start": "npm --prefix backend start",
+    "test:lambda": "npm --prefix lambda test"
+  }
+}

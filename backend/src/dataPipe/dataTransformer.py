@@ -1,8 +1,8 @@
 """
 dataTransformer.py
 
-Reads  dataPipe/data/battery_data.jsonl  (written by dataGrabber.py)
-Writes dataPipe/data/metrics.jsonl       (ready for Supabase)
+Reads  test/fixtures/dataPipe/battery_data.jsonl  (written by dataGrabber.py)
+Writes test/fixtures/dataPipe/metrics.jsonl       (ready for Supabase)
 
 Output schema per row:
 {
@@ -26,7 +26,9 @@ from datetime import datetime, date
 
 # ── config ────────────────────────────────────────────────────────────────────
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "test", "fixtures", "dataPipe"
+)
 INPUT_PATH = os.path.join(DATA_DIR, "battery_data.jsonl")
 OUTPUT_PATH = os.path.join(DATA_DIR, "metrics.jsonl")
 

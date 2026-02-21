@@ -4,7 +4,9 @@ import platform
 from bs4 import BeautifulSoup
 import os
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data")
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "test", "fixtures", "dataPipe"
+)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "battery_data.jsonl")
 
