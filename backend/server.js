@@ -243,6 +243,93 @@ function parseDate(value) {
   return parsed;
 }
 
+function parseMetricsPayload(rawBody, contentType) {
+  if (!rawBody) return [];
+  if (Array.isArray(rawBody)) return rawBody;
+  if (typeof rawBody === "object") return [rawBody];
+  if (contentType && contentType.includes("application/json")) {
+    const parsed = JSON.parse(rawBody);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  }
+  return rawBody
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+function normalizeMetricRecord(record) {
+  if (!record || typeof record !== "object") {
+    throw new Error("Invalid record payload");
+  }
+  const required = [
+    "org_id",
+    "user_id",
+    "device_id",
+    "start_time",
+    "state",
+    "duration_seconds",
+    "energy_drained_mwh"
+  ];
+  for (const key of required) {
+    if (record[key] === undefined || record[key] === null || record[key] === "") {
+      throw new Error(`Missing required field: ${key}`);
+    }
+  }
+  return {
+    org_id: String(record.org_id),
+    user_id: String(record.user_id),
+    device_id: String(record.device_id),
+    start_time: record.start_time,
+    state: String(record.state),
+    duration_seconds: Number(record.duration_seconds),
+    energy_drained_mwh: Number(record.energy_drained_mwh)
+  };
+}
+
+function dedupeMetricRecords(records) {
+  const seen = new Set();
+  const unique = [];
+  for (const record of records) {
+    const key = [
+      record.org_id,
+      record.user_id,
+      record.device_id,
+      new Date(record.start_time).toISOString()
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(record);
+  }
+  return unique;
+}
+
+async function insertEnergyMetrics(records) {
+  const config = getSupabaseConfig();
+  if (!config) {
+    throw new Error("Supabase credentials are not configured.");
+  }
+
+  const response = await fetch(
+    `${config.url}/rest/v1/energy_metrics?on_conflict=org_id,user_id,device_id,start_time`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        Prefer: "return=minimal, resolution=ignore-duplicates"
+      },
+      body: JSON.stringify(records)
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Supabase insert failed: ${message}`);
+  }
+}
+
 function filterUsage(records, { from, to, device, user }) {
   const fromDate = parseDate(from);
   const toDate = parseDate(to);
@@ -407,6 +494,30 @@ app.get("/api/offset/summary", (req, res) => {
     climateOrders: state.climateOrders
   });
 });
+
+app.post(
+  "/api/metrics/ingest",
+  express.text({ type: ["text/plain", "application/json"] }),
+  async (req, res) => {
+    try {
+      const contentType = req.headers["content-type"] || "";
+      const payload = parseMetricsPayload(req.body, contentType);
+      const records = dedupeMetricRecords(
+        payload.map(normalizeMetricRecord)
+      );
+
+      if (!records.length) {
+        return res.status(400).json({ error: "No records provided." });
+      }
+
+      await insertEnergyMetrics(records);
+      res.json({ inserted: records.length });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 app.get("/api/dashboard/summary", async (req, res) => {
   try {
