@@ -42,6 +42,26 @@ function normalizeRecord(record) {
   };
 }
 
+function dedupeRecords(records) {
+  const seen = new Set();
+  const unique = [];
+
+  for (const record of records) {
+    const key = [
+      record.org_id,
+      record.user_id,
+      record.device_id,
+      record.start_time.toISOString()
+    ].join("|");
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(record);
+  }
+
+  return unique;
+}
+
 function parsePayload(rawBody, contentType) {
   if (!rawBody) return [];
 
@@ -61,16 +81,19 @@ function parsePayload(rawBody, contentType) {
 async function insertRecords(records) {
   const { url, serviceRoleKey } = getSupabaseConfig();
 
-  const response = await fetch(`${url}/rest/v1/energy_metrics`, {
+  const response = await fetch(
+    `${url}/rest/v1/energy_metrics?on_conflict=org_id,user_id,device_id,start_time`,
+    {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
-      Prefer: "return=minimal"
+      Prefer: "return=minimal, resolution=ignore-duplicates"
     },
     body: JSON.stringify(records)
-  });
+    }
+  );
 
   if (!response.ok) {
     const message = await response.text();
@@ -87,7 +110,7 @@ exports.handler = async (event) => {
       : event.body || "";
     const payload = parsePayload(rawBody, contentType);
 
-    const records = payload.map(normalizeRecord);
+    const records = dedupeRecords(payload.map(normalizeRecord));
     if (!records.length) {
       return { statusCode: 400, body: JSON.stringify({ error: "No records provided" }) };
     }
