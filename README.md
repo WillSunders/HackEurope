@@ -1,13 +1,13 @@
 # HackEurope
 
-Stripe Climate checkout flow for test carbon offsets.
+CarbonOps Network demo with Stripe Climate checkout and a React dashboard.
 
 ## What this does
 - Fetches Stripe Climate price per metric ton.
-- Calculates checkout totals on the frontend.
 - Runs Stripe Checkout in test mode.
-- Tracks paid emissions on the backend.
-- Once 5 tons are accumulated, creates a Stripe Climate order for 5 tons.
+- Tracks paid emissions on the backend via webhook.
+- Creates a Stripe Climate order when 5 tons are accumulated.
+- Renders a React dashboard with summary cards, charts, breakdowns, exports, and receipts.
 
 ## Quick start
 
@@ -45,6 +45,13 @@ Use Stripe CLI to forward webhook events:
 stripe listen --forward-to localhost:4242/api/stripe/webhook
 ```
 
+## Dashboard APIs (mock data)
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/breakdown?groupBy=team|service|user|device|region`
+- `GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD&device=A100&user=alex&format=csv|json`
+- `GET /api/receipts?period=YYYY-MM`
+
 ## Notes
 - Everything runs in test mode. No live payments are accepted.
 - Totals are stored in memory. Restarting the server resets totals.
+- Mock data lives in `backend/server.js` and can be swapped for real telemetry.
