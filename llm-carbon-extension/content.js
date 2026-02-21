@@ -1,42 +1,74 @@
 console.log("LLM Carbon Estimator: content.js running on", location.href);
 
-const TOKENS_PER_CHAR = 1 / 4; // rough heuristic for English
-const G_CO2_PER_1K_TOKENS = 0.05; // placeholder coefficient (tune later)
+const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
+const G_CO2_PER_1K_TOKENS = 0.05;         // placeholder coefficient
 
 function estimateTokens(text) {
   if (!text) return 0;
   return Math.max(1, Math.round(text.length * TOKENS_PER_CHAR));
 }
 
-async function addUsage(deltaTokens) {
-  const { totalTokens = 0, totalCO2g = 0 } = await chrome.storage.local.get([
-    "totalTokens",
-    "totalCO2g",
-  ]);
-
-  const newTotalTokens = totalTokens + deltaTokens;
-  const deltaCO2g = (deltaTokens / 1000) * G_CO2_PER_1K_TOKENS;
-  const newTotalCO2g = totalCO2g + deltaCO2g;
-
-  await chrome.storage.local.set({
-    totalTokens: newTotalTokens,
-    totalCO2g: newTotalCO2g,
-  });
-
-  // Optional: update badge text live
-  updateBadge(newTotalTokens, newTotalCO2g);
+// --- Simple hash for dedupe keys (fast + good enough for this use) ---
+function hashString(str) {
+  // djb2-ish
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+  return (h >>> 0).toString(16);
 }
 
-// --------------------
-// Visible badge (debug UI)
-// --------------------
+// --- Conversation identifier (prevents cross-chat collisions) ---
+function getConversationId() {
+  // ChatGPT: /c/<id> (common), but fall back to path
+  const m = location.pathname.match(/\/c\/([a-zA-Z0-9-]+)/);
+  return m ? m[1] : location.pathname;
+}
+
+// --- Best-effort extraction of chat messages from the page ---
+// This is intentionally defensive. We’ll try multiple selector patterns.
+function getMessageNodes() {
+  // Common patterns on chat UIs:
+  // - article elements
+  // - elements with data attributes (varies)
+  const selectors = [
+    "main article",
+    "article",
+    "[data-message-author-role]",
+    "[data-testid*='message']",
+  ];
+
+  for (const sel of selectors) {
+    const nodes = Array.from(document.querySelectorAll(sel));
+    if (nodes.length > 0) return nodes;
+  }
+  return [];
+}
+
+function inferRole(node) {
+  // If a role attribute exists, use it
+  const roleAttr = node.getAttribute("data-message-author-role");
+  if (roleAttr) return roleAttr; // "user" or "assistant" on some builds
+
+  // Fallback heuristic:
+  // Many UIs tag user messages differently, but if we can't tell,
+  // mark as "unknown" so we still dedupe.
+  return "unknown";
+}
+
+function extractText(node) {
+  // Prefer innerText because it matches what user sees.
+  // Trim to avoid minor whitespace reflows causing new hashes.
+  const t = (node.innerText || "").trim();
+  // Avoid counting empty UI containers
+  if (t.length < 2) return "";
+  return t;
+}
+
+// --- Badge UI (debug) ---
 let badge = null;
 
 function ensureBadge() {
   if (badge) return badge;
-
   badge = document.createElement("div");
-  badge.innerText = "LLM Carbon Estimator Active";
   badge.style.position = "fixed";
   badge.style.bottom = "20px";
   badge.style.right = "20px";
@@ -47,54 +79,115 @@ function ensureBadge() {
   badge.style.borderRadius = "8px";
   badge.style.fontSize = "12px";
   badge.style.lineHeight = "1.3";
-  badge.style.maxWidth = "220px";
+  badge.style.maxWidth = "260px";
   badge.style.whiteSpace = "pre-line";
   badge.style.boxShadow = "0 4px 14px rgba(0,0,0,0.35)";
-
-  // If body isn't ready yet, wait
   const attach = () => document.body && document.body.appendChild(badge);
   if (document.body) attach();
   else window.addEventListener("DOMContentLoaded", attach, { once: true });
-
   return badge;
 }
 
-function updateBadge(totalTokens, totalCO2g) {
+function updateBadge(totalTokens, totalCO2g, countedCount) {
   ensureBadge();
   badge.innerText =
     `LLM Carbon Estimator Active\n` +
     `Tokens (est): ${totalTokens}\n` +
-    `CO₂e (est): ${Math.round(totalCO2g)} g`;
+    `CO₂e (est): ${Math.round(totalCO2g)} g\n` +
+    `Msgs counted: ${countedCount}`;
 }
 
-// Create badge immediately
-ensureBadge();
+// --- Storage helpers ---
+async function getState() {
+  const {
+    totalTokens = 0,
+    totalCO2g = 0,
+    countedKeys = [], // store as array; Set isn't serializable
+  } = await chrome.storage.local.get(["totalTokens", "totalCO2g", "countedKeys"]);
 
-// --------------------
-// Naive text-length observer
-// --------------------
-let lastTextLen = 0;
+  return {
+    totalTokens,
+    totalCO2g,
+    countedSet: new Set(countedKeys),
+  };
+}
 
-const obs = new MutationObserver(async () => {
-  const text = document.body?.innerText || "";
-  const newLen = text.length;
+async function saveState(totalTokens, totalCO2g, countedSet) {
+  await chrome.storage.local.set({
+    totalTokens,
+    totalCO2g,
+    countedKeys: Array.from(countedSet),
+  });
+}
 
-  if (newLen > lastTextLen) {
-    const deltaText = text.slice(lastTextLen);
-    const deltaTokens = estimateTokens(deltaText);
-    await addUsage(deltaTokens);
+// --- Core: scan messages, count only unseen ones ---
+async function scanAndCount() {
+  const convId = getConversationId();
+  const nodes = getMessageNodes();
+
+  if (nodes.length === 0) return;
+
+  const state = await getState();
+  let { totalTokens, totalCO2g, countedSet } = state;
+
+  let addedTokens = 0;
+  let newlyCounted = 0;
+
+  for (const node of nodes) {
+    const text = extractText(node);
+    if (!text) continue;
+
+    const role = inferRole(node);
+    const key = `${convId}:${role}:${hashString(text)}`;
+
+    if (countedSet.has(key)) continue; // already counted (prevents double count)
+
+    const t = estimateTokens(text);
+    addedTokens += t;
+    countedSet.add(key);
+    newlyCounted += 1;
   }
 
-  lastTextLen = newLen;
-});
+  if (addedTokens > 0) {
+    totalTokens += addedTokens;
+    totalCO2g += (addedTokens / 1000) * G_CO2_PER_1K_TOKENS;
+    await saveState(totalTokens, totalCO2g, countedSet);
+  }
 
+  updateBadge(totalTokens, totalCO2g, countedSet.size);
+
+  if (newlyCounted > 0) {
+    console.log(
+      `LLM Carbon Estimator: +${addedTokens} tokens from ${newlyCounted} new message(s) in conv ${convId}`
+    );
+  }
+}
+
+// --- Observe DOM changes and rescan (debounced) ---
+let timer = null;
+function scheduleScan() {
+  if (timer) return;
+  timer = setTimeout(async () => {
+    timer = null;
+    try {
+      await scanAndCount();
+    } catch (e) {
+      console.warn("LLM Carbon Estimator scan error:", e);
+    }
+  }, 300);
+}
+
+ensureBadge();
+scheduleScan();
+
+const obs = new MutationObserver(scheduleScan);
 obs.observe(document.documentElement, { childList: true, subtree: true });
 
-// Initialize badge with current stored totals
-(async () => {
-  const { totalTokens = 0, totalCO2g = 0 } = await chrome.storage.local.get([
-    "totalTokens",
-    "totalCO2g",
-  ]);
-  updateBadge(totalTokens, totalCO2g);
-})();
+// Also rescan on URL path changes (SPA navigation sometimes doesn’t reload the page)
+let lastPath = location.pathname;
+setInterval(() => {
+  if (location.pathname !== lastPath) {
+    lastPath = location.pathname;
+    scheduleScan();
+  }
+}, 500);
