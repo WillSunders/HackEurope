@@ -1,13 +1,15 @@
 import subprocess
 import sys
-import os
 
 TASK_NAME = "CarbonTracker"
+CREATE_NO_WINDOW = 0x08000000
 
 
 def is_scheduled():
     result = subprocess.run(
-        ["schtasks", "/query", "/tn", TASK_NAME], capture_output=True
+        ["schtasks", "/query", "/tn", TASK_NAME],
+        capture_output=True,
+        creationflags=CREATE_NO_WINDOW,
     )
     return result.returncode == 0
 
@@ -29,10 +31,13 @@ def schedule():
             "/sc",
             "hourly",
             "/f",
-        ]
+        ],
+        capture_output=True,
+        creationflags=CREATE_NO_WINDOW,
     )
     print(f"✅ Scheduled to run hourly")
 
 
 if __name__ == "__main__":
     schedule()
+
