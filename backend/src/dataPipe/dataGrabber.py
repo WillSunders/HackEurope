@@ -4,11 +4,13 @@ import platform
 from bs4 import BeautifulSoup
 import os
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "test", "fixtures", "dataPipe"
+# OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data")
+OUTPUT_DIR = os.environ.get(
+    "CARBON_TRACKER_DATA_DIR", os.path.join(os.path.dirname(__file__), "data")
 )
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "battery_data.jsonl")
+CREATE_NO_WINDOW = 0x08000000  # Windows flag
 
 
 def get_paths():
@@ -32,17 +34,22 @@ def get_battery_report():
         print("Unsupported OS")
         return None
 
+    kwargs = {}
+    if platform.system() == "Windows":
+        kwargs["creationflags"] = CREATE_NO_WINDOW
+
     if platform.system() == "Linux":
         subprocess.run(
             [
                 "cmd.exe",
                 "/c",
                 f"powercfg /batteryreport /output {paths['windows_output']}",
-            ]
+            ],
+            **kwargs,
         )
     else:
         subprocess.run(
-            ["powercfg", "/batteryreport", "/output", paths["windows_output"]]
+            ["powercfg", "/batteryreport", "/output", paths["windows_output"]], **kwargs
         )
 
     with open(paths["read_path"], "r", encoding="utf-8-sig") as f:

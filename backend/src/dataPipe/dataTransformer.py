@@ -22,23 +22,34 @@ Usage:
 import json
 import os
 from datetime import datetime, date
+import urllib.request
 
 
 # ── config ────────────────────────────────────────────────────────────────────
 
-DATA_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "test", "fixtures", "dataPipe"
+# DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.environ.get(
+    "CARBON_TRACKER_DATA_DIR", os.path.join(os.path.dirname(__file__), "data")
 )
 INPUT_PATH = os.path.join(DATA_DIR, "battery_data.jsonl")
 OUTPUT_PATH = os.path.join(DATA_DIR, "metrics.jsonl")
 
-ZONE = "IE"  # grid zone — change to match device location
 CARBON_INTENSITY = None  # gCO2/kWh — set manually or leave None to fill later
 ORG_ID = "placeholder"
 USER_ID = "user_ID_Placeholdler"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+def get_zone() -> str:
+    try:
+        with urllib.request.urlopen("https://ipapi.co/json/", timeout=5) as r:
+            data = json.loads(r.read())
+            return data.get("country_code", "IE")  # fallback to IE if it fails
+    except Exception:
+        return "IE"
+
+
+ZONE = get_zone()  # grid zone — change to match device location
 
 
 def parse_mwh(value: str) -> float | None:
@@ -136,6 +147,7 @@ def main():
                 "state": row.get("state", ""),
                 "duration_seconds": parse_duration(row.get("duration", "0:00:00")),
                 "energy_drained_mwh": energy_mwh,
+                "zone": ZONE,
             }
         )
 
@@ -154,7 +166,7 @@ def main():
     print(f"   Output:                     {OUTPUT_PATH}")
 
     print("\n── Sample output (first 3 rows) ──")
-    for m in metrics[:6]:
+    for m in metrics[:1]:
         print(json.dumps(m, indent=2))
 
 

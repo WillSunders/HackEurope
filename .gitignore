@@ -15,7 +15,7 @@ node_modules/
 uv.lock
 
 # Data / output files
-src/dataPipe/data/
+backend/src/dataPipe/data/
 
 # WSL / Windows
 *.html
