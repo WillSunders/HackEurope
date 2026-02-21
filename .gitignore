@@ -1,2 +1,23 @@
-data/
-*.jsonl
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# uv
+.uv/
+uv.lock
+
+# Data / output files
+src/dataPipe/data/
+
+# WSL / Windows
+*.html
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

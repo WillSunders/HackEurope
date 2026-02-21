@@ -153,7 +153,7 @@ def main():
     print("Done — battery_data.jsonl written")
 
     # Preview
-    with open("battery_data.jsonl") as f:
+    with open(OUTPUT_PATH) as f:
         for i, line in enumerate(f):
             print(line.strip())
             if i > 8:
