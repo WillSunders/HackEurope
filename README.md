@@ -51,6 +51,14 @@ stripe listen --forward-to localhost:4242/api/stripe/webhook
 - `GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD&device=A100&user=alex&format=csv|json`
 - `GET /api/receipts?period=YYYY-MM`
 
+## Docker
+Build and run the service in a container:
+
+```bash
+docker build -t carbonops .
+docker run --rm -p 4242:4242 --env-file backend/.env carbonops
+```
+
 ## Notes
 - Everything runs in test mode. No live payments are accepted.
 - Totals are stored in memory. Restarting the server resets totals.
