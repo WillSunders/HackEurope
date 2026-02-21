@@ -3,6 +3,40 @@ console.log("LLM Carbon Estimator: content.js running on", location.href);
 const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
 const G_CO2_PER_1K_TOKENS = 0.05;         // placeholder coefficient
 
+// ---- Extension lifecycle safety ----
+let EXT_CONTEXT_VALID = true;
+
+window.addEventListener("beforeunload", () => {
+  EXT_CONTEXT_VALID = false;
+});
+
+function isInvalidationError(e) {
+  const msg = String(e?.message || e);
+  return msg.includes("Extension context invalidated") ||
+         msg.includes("context invalidated");
+}
+
+async function safeStorageGet(keys) {
+  if (!EXT_CONTEXT_VALID) return null;
+  try {
+    return await chrome.storage.local.get(keys);
+  } catch (e) {
+    if (isInvalidationError(e)) return null;
+    throw e;
+  }
+}
+
+async function safeStorageSet(obj) {
+  if (!EXT_CONTEXT_VALID) return false;
+  try {
+    await chrome.storage.local.set(obj);
+    return true;
+  } catch (e) {
+    if (isInvalidationError(e)) return false;
+    throw e;
+  }
+}
+
 function estimateTokens(text) {
   if (!text) return 0;
   return Math.max(1, Math.round(text.length * TOKENS_PER_CHAR));
@@ -99,11 +133,16 @@ function updateBadge(totalTokens, totalCO2g, countedCount) {
 
 // --- Storage helpers ---
 async function getState() {
+  const res = await safeStorageGet(["totalTokens", "totalCO2g", "countedKeys"]);
+  if (!res) {
+    return { totalTokens: 0, totalCO2g: 0, countedSet: new Set() };
+  }
+
   const {
     totalTokens = 0,
     totalCO2g = 0,
     countedKeys = [], // store as array; Set isn't serializable
-  } = await chrome.storage.local.get(["totalTokens", "totalCO2g", "countedKeys"]);
+  } = res;
 
   return {
     totalTokens,
@@ -113,7 +152,7 @@ async function getState() {
 }
 
 async function saveState(totalTokens, totalCO2g, countedSet) {
-  await chrome.storage.local.set({
+  await safeStorageSet({
     totalTokens,
     totalCO2g,
     countedKeys: Array.from(countedSet),
@@ -122,6 +161,8 @@ async function saveState(totalTokens, totalCO2g, countedSet) {
 
 // --- Core: scan messages, count only unseen ones ---
 async function scanAndCount() {
+  if (!EXT_CONTEXT_VALID) return;
+
   const convId = getConversationId();
   const nodes = getMessageNodes();
 
@@ -172,6 +213,7 @@ function scheduleScan() {
     try {
       await scanAndCount();
     } catch (e) {
+      if (isInvalidationError(e)) return;
       console.warn("LLM Carbon Estimator scan error:", e);
     }
   }, 300);
@@ -183,9 +225,14 @@ scheduleScan();
 const obs = new MutationObserver(scheduleScan);
 obs.observe(document.documentElement, { childList: true, subtree: true });
 
+window.addEventListener("beforeunload", () => {
+  try { obs.disconnect(); } catch {}
+});
+
 // Also rescan on URL path changes (SPA navigation sometimes doesn’t reload the page)
 let lastPath = location.pathname;
 setInterval(() => {
+  if (!EXT_CONTEXT_VALID) return;
   if (location.pathname !== lastPath) {
     lastPath = location.pathname;
     scheduleScan();
