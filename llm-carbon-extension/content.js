@@ -1,7 +1,8 @@
-console.log("LLM Carbon Estimator: content.js running on", location.href);
+console.log("LLM Energy Estimator: content.js running on", location.href);
 
 const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
-const G_CO2_PER_1K_TOKENS = 0.05;         // placeholder coefficient
+const KG_CO2_PER_KWH = 0.187;             // used only for migration fallback
+const KWH_PER_1K_TOKENS = 0.00027;        // placeholder energy coefficient
 
 // ---- Extension lifecycle safety ----
 let EXT_CONTEXT_VALID = true;
@@ -122,39 +123,48 @@ function ensureBadge() {
   return badge;
 }
 
-function updateBadge(totalTokens, totalCO2g, countedCount) {
+function updateBadge(totalTokens, totalEnergyKwh, countedCount) {
   ensureBadge();
   badge.innerText =
-    `LLM Carbon Estimator Active\n` +
+    `LLM Energy Estimator Active\n` +
     `Tokens (est): ${totalTokens}\n` +
-    `CO₂e (est): ${Math.round(totalCO2g)} g\n` +
+    `Energy (est): ${totalEnergyKwh.toFixed(4)} kWh\n` +
     `Msgs counted: ${countedCount}`;
 }
 
 // --- Storage helpers ---
 async function getState() {
-  const res = await safeStorageGet(["totalTokens", "totalCO2g", "countedKeys"]);
+  const res = await safeStorageGet([
+    "totalTokens",
+    "totalEnergyKwh",
+    "totalCO2g",
+    "countedKeys",
+  ]);
   if (!res) {
-    return { totalTokens: 0, totalCO2g: 0, countedSet: new Set() };
+    return { totalTokens: 0, totalEnergyKwh: 0, countedSet: new Set() };
   }
 
   const {
     totalTokens = 0,
+    totalEnergyKwh = 0,
     totalCO2g = 0,
     countedKeys = [], // store as array; Set isn't serializable
   } = res;
 
+  const migratedEnergyKwh =
+    totalEnergyKwh || (totalCO2g ? (totalCO2g / 1000) / KG_CO2_PER_KWH : 0);
+
   return {
     totalTokens,
-    totalCO2g,
+    totalEnergyKwh: migratedEnergyKwh,
     countedSet: new Set(countedKeys),
   };
 }
 
-async function saveState(totalTokens, totalCO2g, countedSet) {
+async function saveState(totalTokens, totalEnergyKwh, countedSet) {
   await safeStorageSet({
     totalTokens,
-    totalCO2g,
+    totalEnergyKwh,
     countedKeys: Array.from(countedSet),
   });
 }
@@ -169,7 +179,7 @@ async function scanAndCount() {
   if (nodes.length === 0) return;
 
   const state = await getState();
-  let { totalTokens, totalCO2g, countedSet } = state;
+  let { totalTokens, totalEnergyKwh, countedSet } = state;
 
   let addedTokens = 0;
   let newlyCounted = 0;
@@ -191,15 +201,15 @@ async function scanAndCount() {
 
   if (addedTokens > 0) {
     totalTokens += addedTokens;
-    totalCO2g += (addedTokens / 1000) * G_CO2_PER_1K_TOKENS;
-    await saveState(totalTokens, totalCO2g, countedSet);
+    totalEnergyKwh += (addedTokens / 1000) * KWH_PER_1K_TOKENS;
+    await saveState(totalTokens, totalEnergyKwh, countedSet);
   }
 
-  updateBadge(totalTokens, totalCO2g, countedSet.size);
+  updateBadge(totalTokens, totalEnergyKwh, countedSet.size);
 
   if (newlyCounted > 0) {
     console.log(
-      `LLM Carbon Estimator: +${addedTokens} tokens from ${newlyCounted} new message(s) in conv ${convId}`
+      `LLM Energy Estimator: +${addedTokens} tokens from ${newlyCounted} new message(s) in conv ${convId}`
     );
   }
 }
