@@ -252,6 +252,10 @@ async function createClimateOrderIfReady() {
   }
 }
 
+// ── Carbon Intensity (grid_signals) ──────────────────────────────────────────
+const { getCarbonIntensity, getMultipleCarbonIntensities } = require('./grid_signals');
+
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.post(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
@@ -295,6 +299,7 @@ app.post(
 
 app.use(express.json());
 
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
@@ -439,6 +444,27 @@ app.post("/api/checkout/session", async (req, res) => {
   }
 });
 
+// ── Carbon Intensity Routes ───────────────────────────────────────────────────
+app.get('/api/carbon-intensity/:zone/:timestamp', async (req, res) => {
+  try {
+    const data = await getCarbonIntensity(req.params.zone, req.params.timestamp);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/carbon-intensity/bulk', async (req, res) => {
+  try {
+    const { requests } = req.body;
+    const results = await getMultipleCarbonIntensities(requests);
+    res.json({ results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── Static Frontend ───────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "..", "frontend")));
 
 app.listen(port, () => {
