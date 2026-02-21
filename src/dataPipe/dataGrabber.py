@@ -116,7 +116,7 @@ def parse_capacity_history(soup):
         if len(cols) >= 3 and cols[0]:
             rows.append(
                 {
-                    "period": cols[0],
+                    "start_time": cols[0],
                     "full_charge_capacity_mwh": cols[1],
                     "design_capacity_mwh": cols[2],
                 }
