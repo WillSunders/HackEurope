@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Carbon Estimator",
+  "version": "0.1.0",
+  "description": "Estimates token usage locally and (optionally) sends aggregates to a backend.",
+  "action": {
+    "default_title": "LLM Carbon Estimator",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
