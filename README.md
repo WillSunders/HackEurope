@@ -1,6 +1,6 @@
 # HackEurope
 
-CarbonOps Network demo with Stripe Climate checkout and a React dashboard.
+CarbonOps Network demo with Stripe Climate checkout, a React dashboard, and a metrics ingestion Lambda.
 
 ## What this does
 - Fetches Stripe Climate price per metric ton.
@@ -8,6 +8,7 @@ CarbonOps Network demo with Stripe Climate checkout and a React dashboard.
 - Tracks paid emissions on the backend via webhook.
 - Creates a Stripe Climate order when 5 tons are accumulated.
 - Renders a React dashboard with summary cards, charts, breakdowns, exports, and receipts.
+- Provides an AWS Lambda handler to ingest metrics JSON/JSONL into Supabase Postgres.
 
 ## Quick start
 
@@ -50,6 +51,50 @@ stripe listen --forward-to localhost:4242/api/stripe/webhook
 - `GET /api/dashboard/breakdown?groupBy=team|service|user|device|region`
 - `GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD&device=A100&user=alex&format=csv|json`
 - `GET /api/receipts?period=YYYY-MM`
+
+## Metrics Lambda (Supabase Postgres)
+
+1. Create table in Supabase:
+
+```sql
+-- See lambda/schema.sql
+```
+
+2. Install Lambda deps:
+
+```bash
+cd lambda
+npm install
+```
+
+3. Set environment variable in Lambda:
+
+```
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.dgzwhtjsaxuhqqjwbimm.supabase.co:5432/postgres
+```
+
+4. Lambda handler:
+
+```
+lambda/handler.js
+```
+
+### Payload formats
+- `application/json`: single object or array
+- `text/plain`: JSONL (one JSON object per line)
+
+### Example JSON
+```json
+{
+  "org_id": "placeholder",
+  "user_id": "user_ID_Placeholdler",
+  "device_id": "PEARL_LENOVO_21K50033UK",
+  "start_time": "2026-02-14T20:59:58",
+  "state": "Connected standby",
+  "duration_seconds": 63,
+  "energy_drained_mwh": 560.0
+}
+```
 
 ## Docker
 Build and run the service in a container:
