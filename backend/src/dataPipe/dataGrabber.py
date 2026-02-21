@@ -34,6 +34,10 @@ def get_battery_report():
         print("Unsupported OS")
         return None
 
+    kwargs = {}
+    if platform.system() == "Windows":
+        kwargs["creationflags"] = CREATE_NO_WINDOW
+
     if platform.system() == "Linux":
         subprocess.run(
             [
@@ -41,12 +45,11 @@ def get_battery_report():
                 "/c",
                 f"powercfg /batteryreport /output {paths['windows_output']}",
             ],
-            creationflags=CREATE_NO_WINDOW,
+            **kwargs,
         )
     else:
         subprocess.run(
-            ["powercfg", "/batteryreport", "/output", paths["windows_output"]],
-            creationflags=CREATE_NO_WINDOW,
+            ["powercfg", "/batteryreport", "/output", paths["windows_output"]], **kwargs
         )
 
     with open(paths["read_path"], "r", encoding="utf-8-sig") as f:
