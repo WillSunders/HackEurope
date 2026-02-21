@@ -1,8 +1,8 @@
 """
 dataTransformer.py
 
-Reads  dataPipe/data/battery_data.jsonl  (written by dataGrabber.py)
-Writes dataPipe/data/metrics.jsonl       (ready for Supabase)
+Reads  test/fixtures/dataPipe/battery_data.jsonl  (written by dataGrabber.py)
+Writes test/fixtures/dataPipe/metrics.jsonl       (ready for Supabase)
 
 Output schema per row:
 {

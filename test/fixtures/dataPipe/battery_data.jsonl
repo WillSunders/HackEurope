@@ -1,0 +1,115 @@
+{"section": "system_info", "COMPUTER NAME": "PEARL", "SYSTEM PRODUCT NAME": "LENOVO 21K50033UK", "BIOS": "R2FET59W (1.39 ) 09/05/2024", "OS BUILD": "26100.1.amd64fre.ge_release.240331-1435", "PLATFORM ROLE": "Mobile", "CONNECTED STANDBY": "Supported", "REPORT TIME": "2026-02-21 19:27:27"}
+{"section": "battery_info", "": "BATTERY\n\n                  1", "NAME": "5B11M90027", "MANUFACTURER": "SMP", "SERIAL NUMBER": "864", "CHEMISTRY": "LiP", "DESIGN CAPACITY": "52,570 mWh", "FULL CHARGE CAPACITY": "48,610 mWh", "CYCLE COUNT": "39"}
+{"section": "recent_usage", "start_time": "2026-02-14 20:59:58", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "72 %", "capacity_remaining_mwh": "35,600 mWh"}
+{"section": "recent_usage", "start_time": "21:01:01", "state": "Suspended", "source": "", "capacity_remaining_pct": "71 %", "capacity_remaining_mwh": "35,040 mWh"}
+{"section": "recent_usage", "start_time": "21:01:43", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "71 %", "capacity_remaining_mwh": "34,760 mWh"}
+{"section": "recent_usage", "start_time": "21:02:18", "state": "Active", "source": "Battery", "capacity_remaining_pct": "70 %", "capacity_remaining_mwh": "34,570 mWh"}
+{"section": "recent_usage", "start_time": "2026-02-15 00:00:31", "state": "Active", "source": "AC", "capacity_remaining_pct": "4 %", "capacity_remaining_mwh": "1,920 mWh"}
+{"section": "recent_usage", "start_time": "02:43:30", "state": "Active", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,480 mWh"}
+{"section": "recent_usage", "start_time": "03:17:49", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "88 %", "capacity_remaining_mwh": "42,790 mWh"}
+{"section": "recent_usage", "start_time": "03:59:02", "state": "Suspended", "source": "", "capacity_remaining_pct": "87 %", "capacity_remaining_mwh": "42,780 mWh"}
+{"section": "recent_usage", "start_time": "2026-02-21 10:14:45", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:14:45", "state": "Suspended", "source": "", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:15:20", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:15:55", "state": "Active", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:15:55", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:51:47", "state": "Active", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "49,190 mWh"}
+{"section": "recent_usage", "start_time": "10:54:49", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "99 %", "capacity_remaining_mwh": "48,590 mWh"}
+{"section": "recent_usage", "start_time": "11:05:25", "state": "Active", "source": "Battery", "capacity_remaining_pct": "98 %", "capacity_remaining_mwh": "48,450 mWh"}
+{"section": "recent_usage", "start_time": "11:30:36", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "89 %", "capacity_remaining_mwh": "43,880 mWh"}
+{"section": "recent_usage", "start_time": "11:35:39", "state": "Active", "source": "Battery", "capacity_remaining_pct": "89 %", "capacity_remaining_mwh": "43,770 mWh"}
+{"section": "recent_usage", "start_time": "11:40:24", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "87 %", "capacity_remaining_mwh": "42,980 mWh"}
+{"section": "recent_usage", "start_time": "12:21:43", "state": "Active", "source": "Battery", "capacity_remaining_pct": "85 %", "capacity_remaining_mwh": "41,980 mWh"}
+{"section": "recent_usage", "start_time": "12:22:24", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "85 %", "capacity_remaining_mwh": "41,850 mWh"}
+{"section": "recent_usage", "start_time": "12:24:36", "state": "Active", "source": "Battery", "capacity_remaining_pct": "85 %", "capacity_remaining_mwh": "41,660 mWh"}
+{"section": "recent_usage", "start_time": "12:38:41", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "80 %", "capacity_remaining_mwh": "39,380 mWh"}
+{"section": "recent_usage", "start_time": "12:40:22", "state": "Active", "source": "Battery", "capacity_remaining_pct": "80 %", "capacity_remaining_mwh": "39,340 mWh"}
+{"section": "recent_usage", "start_time": "13:06:03", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "75 %", "capacity_remaining_mwh": "36,840 mWh"}
+{"section": "recent_usage", "start_time": "13:37:51", "state": "Active", "source": "Battery", "capacity_remaining_pct": "74 %", "capacity_remaining_mwh": "36,540 mWh"}
+{"section": "recent_usage", "start_time": "13:38:24", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "74 %", "capacity_remaining_mwh": "36,440 mWh"}
+{"section": "recent_usage", "start_time": "13:39:24", "state": "Active", "source": "Battery", "capacity_remaining_pct": "74 %", "capacity_remaining_mwh": "36,340 mWh"}
+{"section": "recent_usage", "start_time": "15:11:00", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "40 %", "capacity_remaining_mwh": "19,680 mWh"}
+{"section": "recent_usage", "start_time": "15:15:52", "state": "Active", "source": "Battery", "capacity_remaining_pct": "39 %", "capacity_remaining_mwh": "19,070 mWh"}
+{"section": "recent_usage", "start_time": "16:30:30", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "16 %", "capacity_remaining_mwh": "7,630 mWh"}
+{"section": "recent_usage", "start_time": "16:32:33", "state": "Active", "source": "Battery", "capacity_remaining_pct": "15 %", "capacity_remaining_mwh": "7,470 mWh"}
+{"section": "recent_usage", "start_time": "16:45:36", "state": "Active", "source": "AC", "capacity_remaining_pct": "12 %", "capacity_remaining_mwh": "6,040 mWh"}
+{"section": "recent_usage", "start_time": "17:50:12", "state": "Connected standby", "source": "AC", "capacity_remaining_pct": "94 %", "capacity_remaining_mwh": "45,910 mWh"}
+{"section": "recent_usage", "start_time": "17:53:09", "state": "Active", "source": "AC", "capacity_remaining_pct": "96 %", "capacity_remaining_mwh": "46,720 mWh"}
+{"section": "recent_usage", "start_time": "18:27:45", "state": "Connected standby", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "18:53:27", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,620 mWh"}
+{"section": "recent_usage", "start_time": "19:03:40", "state": "Active", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:04:20", "state": "Connected standby", "source": "Battery", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:08:13", "state": "Connected standby", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:08:13", "state": "Active", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:08:19", "state": "Connected standby", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:09:54", "state": "Active", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "recent_usage", "start_time": "19:27:27", "state": "Report generated", "source": "AC", "capacity_remaining_pct": "100 %", "capacity_remaining_mwh": "48,610 mWh"}
+{"section": "battery_usage", "start_time": "2026-02-14 20:59:58", "state": "Connected standby", "duration": "0:01:03", "energy_drained_pct": "1 %", "energy_drained_mwh": "560 mWh"}
+{"section": "battery_usage", "start_time": "21:01:43", "state": "Connected standby", "duration": "0:00:35", "energy_drained_pct": "-", "energy_drained_mwh": "190 mWh"}
+{"section": "battery_usage", "start_time": "21:02:18", "state": "Active", "duration": "2:58:13", "energy_drained_pct": "66 %", "energy_drained_mwh": "32,650 mWh"}
+{"section": "battery_usage", "start_time": "02:43:30", "state": "Active", "duration": "0:34:18", "energy_drained_pct": "12 %", "energy_drained_mwh": "5,690 mWh"}
+{"section": "battery_usage", "start_time": "03:17:49", "state": "Connected standby", "duration": "0:41:13", "energy_drained_pct": "-", "energy_drained_mwh": "10 mWh"}
+{"section": "battery_usage", "start_time": "2026-02-21 10:14:45", "state": "Connected standby", "duration": "0:00:00", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "battery_usage", "start_time": "10:15:20", "state": "Connected standby", "duration": "0:00:35", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "battery_usage", "start_time": "10:15:55", "state": "Active", "duration": "0:00:00", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "battery_usage", "start_time": "10:15:55", "state": "Connected standby", "duration": "0:35:52", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "battery_usage", "start_time": "10:51:47", "state": "Active", "duration": "0:03:02", "energy_drained_pct": "1 %", "energy_drained_mwh": "600 mWh"}
+{"section": "battery_usage", "start_time": "10:54:49", "state": "Connected standby", "duration": "0:10:35", "energy_drained_pct": "-", "energy_drained_mwh": "140 mWh"}
+{"section": "battery_usage", "start_time": "11:05:25", "state": "Active", "duration": "0:25:10", "energy_drained_pct": "9 %", "energy_drained_mwh": "4,570 mWh"}
+{"section": "battery_usage", "start_time": "11:30:36", "state": "Connected standby", "duration": "0:05:03", "energy_drained_pct": "-", "energy_drained_mwh": "110 mWh"}
+{"section": "battery_usage", "start_time": "11:35:39", "state": "Active", "duration": "0:04:45", "energy_drained_pct": "2 %", "energy_drained_mwh": "790 mWh"}
+{"section": "battery_usage", "start_time": "11:40:24", "state": "Connected standby", "duration": "0:41:19", "energy_drained_pct": "2 %", "energy_drained_mwh": "1,000 mWh"}
+{"section": "battery_usage", "start_time": "12:21:43", "state": "Active", "duration": "0:00:40", "energy_drained_pct": "-", "energy_drained_mwh": "130 mWh"}
+{"section": "battery_usage", "start_time": "12:22:24", "state": "Connected standby", "duration": "0:02:12", "energy_drained_pct": "-", "energy_drained_mwh": "190 mWh"}
+{"section": "battery_usage", "start_time": "12:24:36", "state": "Active", "duration": "0:14:05", "energy_drained_pct": "5 %", "energy_drained_mwh": "2,280 mWh"}
+{"section": "battery_usage", "start_time": "12:38:41", "state": "Connected standby", "duration": "0:01:40", "energy_drained_pct": "-", "energy_drained_mwh": "40 mWh"}
+{"section": "battery_usage", "start_time": "12:40:22", "state": "Active", "duration": "0:25:40", "energy_drained_pct": "5 %", "energy_drained_mwh": "2,500 mWh"}
+{"section": "battery_usage", "start_time": "13:06:03", "state": "Connected standby", "duration": "0:31:48", "energy_drained_pct": "1 %", "energy_drained_mwh": "300 mWh"}
+{"section": "battery_usage", "start_time": "13:37:51", "state": "Active", "duration": "0:00:32", "energy_drained_pct": "-", "energy_drained_mwh": "100 mWh"}
+{"section": "battery_usage", "start_time": "13:38:24", "state": "Connected standby", "duration": "0:01:00", "energy_drained_pct": "-", "energy_drained_mwh": "100 mWh"}
+{"section": "battery_usage", "start_time": "13:39:24", "state": "Active", "duration": "1:31:36", "energy_drained_pct": "34 %", "energy_drained_mwh": "16,660 mWh"}
+{"section": "battery_usage", "start_time": "15:11:00", "state": "Connected standby", "duration": "0:04:51", "energy_drained_pct": "1 %", "energy_drained_mwh": "610 mWh"}
+{"section": "battery_usage", "start_time": "15:15:52", "state": "Active", "duration": "1:14:38", "energy_drained_pct": "23 %", "energy_drained_mwh": "11,440 mWh"}
+{"section": "battery_usage", "start_time": "16:30:30", "state": "Connected standby", "duration": "0:02:02", "energy_drained_pct": "-", "energy_drained_mwh": "160 mWh"}
+{"section": "battery_usage", "start_time": "16:32:33", "state": "Active", "duration": "0:13:03", "energy_drained_pct": "3 %", "energy_drained_mwh": "1,430 mWh"}
+{"section": "battery_usage", "start_time": "18:53:27", "state": "Connected standby", "duration": "0:10:12", "energy_drained_pct": "-", "energy_drained_mwh": "10 mWh"}
+{"section": "battery_usage", "start_time": "19:03:40", "state": "Active", "duration": "0:00:40", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "battery_usage", "start_time": "19:04:20", "state": "Connected standby", "duration": "0:03:53", "energy_drained_pct": "-", "energy_drained_mwh": "-"}
+{"section": "capacity_history", "start_time": "2025-06-10\n\n      - 2025-06-16", "full_charge_capacity_mwh": "52,570 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-06-16\n\n      - 2025-06-30", "full_charge_capacity_mwh": "52,570 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-06-30\n\n      - 2025-07-07", "full_charge_capacity_mwh": "51,929 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-07-07\n\n      - 2025-07-16", "full_charge_capacity_mwh": "51,248 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-07-16\n\n      - 2025-07-26", "full_charge_capacity_mwh": "51,240 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-07-26\n\n      - 2025-07-29", "full_charge_capacity_mwh": "51,240 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-07-29\n\n      - 2025-08-14", "full_charge_capacity_mwh": "51,240 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-08-14\n\n      - 2025-08-21", "full_charge_capacity_mwh": "50,643 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-08-21\n\n      - 2025-08-27", "full_charge_capacity_mwh": "50,500 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-08-27\n\n      - 2025-09-06", "full_charge_capacity_mwh": "50,500 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-09-06\n\n      - 2025-09-12", "full_charge_capacity_mwh": "50,435 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-09-12\n\n      - 2025-10-02", "full_charge_capacity_mwh": "49,490 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-10-02\n\n      - 2025-10-10", "full_charge_capacity_mwh": "49,490 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-10-10\n\n      - 2025-10-20", "full_charge_capacity_mwh": "48,914 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-10-20\n\n      - 2025-10-29", "full_charge_capacity_mwh": "49,420 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-10-29\n\n      - 2025-11-10", "full_charge_capacity_mwh": "49,291 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-11-10\n\n      - 2025-11-17", "full_charge_capacity_mwh": "49,415 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-11-17\n\n      - 2025-11-24", "full_charge_capacity_mwh": "49,210 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-11-24\n\n      - 2025-12-01", "full_charge_capacity_mwh": "49,273 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-12-01\n\n      - 2025-12-08", "full_charge_capacity_mwh": "49,388 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-12-08\n\n      - 2025-12-15", "full_charge_capacity_mwh": "48,779 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2025-12-15\n\n      - 2026-01-05", "full_charge_capacity_mwh": "48,669 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-01-05\n\n      - 2026-01-12", "full_charge_capacity_mwh": "48,107 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-01-12\n\n      - 2026-01-19", "full_charge_capacity_mwh": "48,528 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-01-19\n\n      - 2026-01-26", "full_charge_capacity_mwh": "48,443 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-01-26\n\n      - 2026-02-02", "full_charge_capacity_mwh": "48,186 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-02\n\n      - 2026-02-09", "full_charge_capacity_mwh": "48,100 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-10", "full_charge_capacity_mwh": "48,174 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-11", "full_charge_capacity_mwh": "48,549 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-12", "full_charge_capacity_mwh": "49,110 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-13", "full_charge_capacity_mwh": "49,110 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-14", "full_charge_capacity_mwh": "49,106 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-15", "full_charge_capacity_mwh": "48,909 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-16", "full_charge_capacity_mwh": "48,980 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-17", "full_charge_capacity_mwh": "48,980 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-18", "full_charge_capacity_mwh": "48,980 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-19", "full_charge_capacity_mwh": "48,980 mWh", "design_capacity_mwh": "52,570 mWh"}
+{"section": "capacity_history", "start_time": "2026-02-20", "full_charge_capacity_mwh": "48,980 mWh", "design_capacity_mwh": "52,570 mWh"}

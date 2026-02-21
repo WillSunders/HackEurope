@@ -7,6 +7,9 @@ __pycache__/
 dist/
 build/
 
+# Node
+node_modules/
+
 # uv
 .uv/
 uv.lock
@@ -22,5 +25,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ENV
-env
+# Env files
+.env
+.env.*

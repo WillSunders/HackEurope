@@ -1,0 +1,13 @@
+{
+  "name": "carbonops-metrics-lambda",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "handler.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
