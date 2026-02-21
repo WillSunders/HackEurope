@@ -52,6 +52,9 @@ stripe listen --forward-to localhost:4242/api/stripe/webhook
 - `GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD&device=A100&user=alex&format=csv|json`
 - `GET /api/receipts?period=YYYY-MM`
 
+### Dashboard data source
+If `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set in `.env`, the dashboard pulls live data from Supabase (`energy_metrics`). Otherwise it falls back to mock data in `backend/server.js`.
+
 ## Metrics Lambda (Supabase Postgres)
 
 1. Create table in Supabase:

@@ -18,6 +18,10 @@ const stripe = new Stripe(stripeSecretKey || "", {
 });
 
 const MIN_TONS_PER_ORDER = Number(process.env.MIN_TONS_PER_ORDER || 5);
+const CARBON_INTENSITY_KG_PER_KWH = Number(
+  process.env.CARBON_INTENSITY_KG_PER_KWH || 0.187
+);
+const COST_PER_KWH = Number(process.env.COST_PER_KWH || 0.2);
 
 const state = {
   totalTons: 0,
@@ -26,6 +30,65 @@ const state = {
   climateOrders: [],
   processedSessions: new Set()
 };
+
+function getSupabaseConfig() {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) return null;
+  return { url, serviceRoleKey };
+}
+
+async function fetchEnergyMetrics({ from, to, device, user }) {
+  const config = getSupabaseConfig();
+  if (!config) return null;
+
+  const params = new URLSearchParams({
+    select:
+      "org_id,user_id,device_id,start_time,state,duration_seconds,energy_drained_mwh,created_at"
+  });
+
+  if (from) params.append("start_time", `gte.${from}`);
+  if (to) params.append("start_time", `lte.${to}`);
+  if (device) params.append("device_id", `eq.${device}`);
+  if (user) params.append("user_id", `eq.${user}`);
+
+  const response = await fetch(
+    `${config.url}/rest/v1/energy_metrics?${params.toString()}`,
+    {
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Supabase fetch failed: ${message}`);
+  }
+
+  return response.json();
+}
+
+function metricsToUsage(records) {
+  return records.map((record, index) => {
+    const energyKwh = Number(record.energy_drained_mwh) / 1000;
+    const carbonKg = energyKwh * CARBON_INTENSITY_KG_PER_KWH;
+    const cost = energyKwh * COST_PER_KWH;
+    return {
+      id: record.id || `${record.device_id}-${record.start_time}-${index}`,
+      timestamp: record.start_time,
+      team: record.org_id,
+      service: record.state,
+      user: record.user_id,
+      device: record.device_id,
+      region: record.region || "EU-UNKNOWN",
+      energyKwh,
+      carbonKg,
+      cost
+    };
+  });
+}
 
 const mockUsage = [
   {
@@ -180,10 +243,10 @@ function parseDate(value) {
   return parsed;
 }
 
-function filterUsage({ from, to, device, user }) {
+function filterUsage(records, { from, to, device, user }) {
   const fromDate = parseDate(from);
   const toDate = parseDate(to);
-  return mockUsage.filter((entry) => {
+  return records.filter((entry) => {
     const timestamp = new Date(entry.timestamp);
     if (fromDate && timestamp < fromDate) return false;
     if (toDate && timestamp > toDate) return false;
@@ -204,6 +267,26 @@ function groupBy(records, key) {
     acc[value].cost += record.cost;
     return acc;
   }, {});
+}
+
+function buildTimeSeries(records) {
+  const grouped = new Map();
+  for (const record of records) {
+    const dateKey = record.timestamp.slice(0, 10);
+    const entry = grouped.get(dateKey) || {
+      date: dateKey,
+      energyKwh: 0,
+      carbonKg: 0,
+      cost: 0
+    };
+    entry.energyKwh += record.energyKwh;
+    entry.carbonKg += record.carbonKg;
+    entry.cost += record.cost;
+    grouped.set(dateKey, entry);
+  }
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.date.localeCompare(b.date)
+  );
 }
 
 function formatCsv(records) {
@@ -325,52 +408,87 @@ app.get("/api/offset/summary", (req, res) => {
   });
 });
 
-app.get("/api/dashboard/summary", (req, res) => {
-  const totalEnergy = mockUsage.reduce((sum, item) => sum + item.energyKwh, 0);
-  const totalCarbon = mockUsage.reduce((sum, item) => sum + item.carbonKg, 0);
-  const totalCost = mockUsage.reduce((sum, item) => sum + item.cost, 0);
+app.get("/api/dashboard/summary", async (req, res) => {
+  try {
+    const metrics =
+      (await fetchEnergyMetrics({ from: req.query.from, to: req.query.to })) ||
+      [];
+    const usage = metrics.length ? metricsToUsage(metrics) : mockUsage;
 
-  res.json({
-    totals: {
-      energyKwh: totalEnergy,
-      carbonKg: totalCarbon,
-      cost: totalCost
-    },
-    timeSeries: mockTimeSeries,
-    removalStatus: {
-      pendingTons: state.pendingTons,
-      totalTons: state.totalTons,
-      climateOrders: state.climateOrders
-    }
-  });
+    const totalEnergy = usage.reduce((sum, item) => sum + item.energyKwh, 0);
+    const totalCarbon = usage.reduce((sum, item) => sum + item.carbonKg, 0);
+    const totalCost = usage.reduce((sum, item) => sum + item.cost, 0);
+
+    res.json({
+      totals: {
+        energyKwh: totalEnergy,
+        carbonKg: totalCarbon,
+        cost: totalCost
+      },
+      timeSeries: metrics.length ? buildTimeSeries(usage) : mockTimeSeries,
+      removalStatus: {
+        pendingTons: state.pendingTons,
+        totalTons: state.totalTons,
+        climateOrders: state.climateOrders
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/api/dashboard/breakdown", (req, res) => {
+app.get("/api/dashboard/breakdown", async (req, res) => {
   const groupKey = req.query.groupBy || "team";
   const allowedKeys = new Set(["team", "service", "user", "device", "region"]);
   if (!allowedKeys.has(groupKey)) {
     return res.status(400).json({ error: "Invalid groupBy value." });
   }
 
-  const grouped = groupBy(mockUsage, groupKey);
-  res.json({
-    groupBy: groupKey,
-    data: Object.values(grouped).sort((a, b) => b.energyKwh - a.energyKwh)
-  });
+  try {
+    const metrics =
+      (await fetchEnergyMetrics({
+        from: req.query.from,
+        to: req.query.to,
+        device: req.query.device,
+        user: req.query.user
+      })) || [];
+    const usage = metrics.length ? metricsToUsage(metrics) : mockUsage;
+    const grouped = groupBy(usage, groupKey);
+    res.json({
+      groupBy: groupKey,
+      data: Object.values(grouped).sort((a, b) => b.energyKwh - a.energyKwh)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/api/export", (req, res) => {
+app.get("/api/export", async (req, res) => {
   const { format = "csv", from, to, device, user } = req.query;
-  const records = filterUsage({ from, to, device, user });
 
-  if (format === "json") {
-    return res.json({ records });
+  try {
+    const metrics =
+      (await fetchEnergyMetrics({ from, to, device, user })) || [];
+    const usage = metrics.length ? metricsToUsage(metrics) : mockUsage;
+    const records = filterUsage(usage, { from, to, device, user });
+
+    if (format === "json") {
+      return res.json({ records });
+    }
+
+    const csv = formatCsv(records);
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=\"carbonops-export.csv\""
+    );
+    res.send(csv);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
-
-  const csv = formatCsv(records);
-  res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", "attachment; filename=\"carbonops-export.csv\"");
-  res.send(csv);
 });
 
 app.get("/api/receipts", (req, res) => {
