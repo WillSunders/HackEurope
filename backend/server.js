@@ -3,7 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const Stripe = require("stripe");
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 const app = express();
 const port = process.env.PORT || 4242;
