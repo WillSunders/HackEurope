@@ -14,8 +14,10 @@ os.makedirs(DATA_DIR, exist_ok=True)
 from dataGrabber import main as grab
 from dataTransformer import main as transform
 from taskScheduler import schedule
+from dataUploader import upload
 
 if __name__ == "__main__":
     schedule()
     grab()
     transform()
+    upload()
