@@ -1,17 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "LLM Carbon Estimator",
+  "name": "LLM Energy Estimator",
   "version": "0.1.0",
-  "description": "Estimates token usage locally and (optionally) sends aggregates to a backend.",
+  "description": "Estimates token usage locally and can send energy metrics to a backend.",
   "action": {
-    "default_title": "LLM Carbon Estimator",
+    "default_title": "LLM Energy Estimator",
     "default_popup": "popup.html"
   },
   "permissions": ["storage"],
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://claude.ai/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "http://localhost:4242/*"
   ],
   "content_scripts": [
     {

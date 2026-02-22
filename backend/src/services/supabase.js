@@ -36,14 +36,16 @@ function createSupabaseService({ url, serviceRoleKey }) {
     return response.json();
   }
 
-  async function insertEnergyMetrics(records) {
+  async function insertMetrics(records, table) {
     const config = getConfig();
     if (!config) {
       throw new Error("Supabase credentials are not configured.");
     }
 
+    const tableName = table || "energy_metrics";
+    const conflictTarget = "org_id,user_id,device_id,start_time";
     const response = await fetch(
-      `${config.url}/rest/v1/energy_metrics?on_conflict=org_id,user_id,device_id,start_time`,
+      `${config.url}/rest/v1/${tableName}?on_conflict=${conflictTarget}`,
       {
         method: "POST",
         headers: {
@@ -62,7 +64,7 @@ function createSupabaseService({ url, serviceRoleKey }) {
     }
   }
 
-  return { fetchEnergyMetrics, insertEnergyMetrics };
+  return { fetchEnergyMetrics, insertMetrics };
 }
 
 module.exports = { createSupabaseService };

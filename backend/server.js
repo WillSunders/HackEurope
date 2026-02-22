@@ -9,6 +9,26 @@ dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const app = express();
 const port = process.env.PORT || 4242;
 
+const allowedOrigins = new Set([
+  "https://chatgpt.com",
+  "https://claude.ai",
+  "https://gemini.google.com"
+]);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
   console.warn("Missing STRIPE_SECRET_KEY. Stripe calls will fail until it is set.");

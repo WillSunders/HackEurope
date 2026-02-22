@@ -3,6 +3,7 @@ console.log("LLM Energy Estimator: content.js running on", location.href);
 const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
 const KG_CO2_PER_KWH = 0.187;             // used only for migration fallback
 const KWH_PER_1K_TOKENS = 0.00027;        // placeholder energy coefficient
+const MWH_PER_KWH = 1000000;              // 1 kWh = 1,000,000 mWh
 
 // ---- Extension lifecycle safety ----
 let EXT_CONTEXT_VALID = true;
@@ -35,6 +36,50 @@ async function safeStorageSet(obj) {
   } catch (e) {
     if (isInvalidationError(e)) return false;
     throw e;
+  }
+}
+
+async function getSettings() {
+  const res = await safeStorageGet([
+    "orgId",
+    "userId",
+    "deviceId",
+    "apiUrl",
+    "enableUpload",
+  ]);
+  return {
+    orgId: res?.orgId || "",
+    userId: res?.userId || "",
+    deviceId: res?.deviceId || "",
+    apiUrl: res?.apiUrl || "http://localhost:4242",
+    enableUpload: Boolean(res?.enableUpload),
+  };
+}
+
+async function appendPendingRecord(record) {
+  const res = await safeStorageGet(["pendingMetrics"]);
+  const pending = Array.isArray(res?.pendingMetrics) ? res.pendingMetrics : [];
+  pending.push(record);
+  // keep last 500 to avoid unbounded growth
+  const trimmed = pending.slice(-500);
+  await safeStorageSet({ pendingMetrics: trimmed });
+}
+
+async function sendRecord(record, settings) {
+  if (!settings.enableUpload || !settings.apiUrl) return;
+  try {
+    console.log("LLM Energy Estimator: sending metric", record);
+    await fetch(
+      `${settings.apiUrl.replace(/\/$/, "")}/api/metrics/ingest?target=llm_energy_metrics`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(record),
+      }
+    );
+  } catch (e) {
+    console.warn("LLM Energy Estimator: failed to send metric", e);
+    // swallow network errors; record is kept in pending list
   }
 }
 
@@ -180,6 +225,7 @@ async function scanAndCount() {
 
   const state = await getState();
   let { totalTokens, totalEnergyKwh, countedSet } = state;
+  const settings = await getSettings();
 
   let addedTokens = 0;
   let newlyCounted = 0;
@@ -201,8 +247,23 @@ async function scanAndCount() {
 
   if (addedTokens > 0) {
     totalTokens += addedTokens;
-    totalEnergyKwh += (addedTokens / 1000) * KWH_PER_1K_TOKENS;
+    const addedEnergyKwh = (addedTokens / 1000) * KWH_PER_1K_TOKENS;
+    totalEnergyKwh += addedEnergyKwh;
     await saveState(totalTokens, totalEnergyKwh, countedSet);
+
+    if (settings.orgId && settings.userId && settings.deviceId) {
+      const record = {
+        org_id: settings.orgId,
+        user_id: settings.userId,
+        device_id: settings.deviceId,
+        start_time: new Date().toISOString(),
+        state: "LLM usage",
+        duration_seconds: 0,
+        energy_drained_mwh: Number((addedEnergyKwh * MWH_PER_KWH).toFixed(4)),
+      };
+      await appendPendingRecord(record);
+      await sendRecord(record, settings);
+    }
   }
 
   updateBadge(totalTokens, totalEnergyKwh, countedSet.size);
