@@ -1,6 +1,6 @@
 console.log("LLM Energy Estimator: content.js running on", location.href);
 
-const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
+const TOKENS_PER_CHAR = 1 / 4;            // fallback heuristic
 const KG_CO2_PER_KWH = 0.187;             // used only for migration fallback
 const MWH_PER_KWH = 1000000;              // 1 kWh = 1,000,000 mWh
 
@@ -109,9 +109,43 @@ async function sendRecord(record, settings) {
   }
 }
 
-function estimateTokens(text) {
+function estimateTokens(text, modelName) {
   if (!text) return 0;
-  return Math.max(1, Math.round(text.length * TOKENS_PER_CHAR));
+
+  const charCount = text.length;
+
+  // Word/segment estimate (better for non-English + punctuation heavy text)
+  let wordCount = 0;
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
+    for (const segment of segmenter.segment(text)) {
+      if (segment.isWordLike) wordCount += 1;
+    }
+  } else {
+    wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  const punctCount = (text.match(/[.,!?;:()[\]{}"']/g) || []).length;
+  const digitGroups = (text.match(/\d+/g) || []).length;
+
+  // Base word-level estimate
+  const wordEstimate = wordCount * 1.3 + punctCount * 0.5 + digitGroups * 0.7;
+
+  // Model-adjusted char estimate
+  const charsPerToken = resolveCharsPerToken(modelName);
+  const charEstimate = charCount / charsPerToken;
+
+  const blended = (wordEstimate + charEstimate) / 2;
+  return Math.max(1, Math.round(blended));
+}
+
+function resolveCharsPerToken(modelName) {
+  const name = normalizeModelName(modelName);
+  if (name.includes("gpt-4") || name.includes("gpt-4o")) return 3.8;
+  if (name.includes("gpt-3.5")) return 4.0;
+  if (name.includes("claude")) return 3.6;
+  if (name.includes("gemini")) return 3.9;
+  return 4.0;
 }
 
 function normalizeModelName(raw) {
@@ -337,7 +371,7 @@ async function scanAndCount() {
 
     if (countedSet.has(key)) continue; // already counted (prevents double count)
 
-    const t = estimateTokens(text);
+    const t = estimateTokens(text, modelName);
     addedTokens += t;
     countedSet.add(key);
     newlyCounted += 1;
