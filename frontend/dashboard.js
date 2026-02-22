@@ -5,6 +5,15 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   currency: "EUR"
 });
 
+const EQUIVALENCY_FACTORS = {
+  carKgPerMile: 0.393, // EPA: 3.93e-4 metric tons CO2e per mile
+  flightKgPerPassengerKm: 0.10794, // UK BEIS/DEFRA 2024 short-haul economy, no RF
+  flightKmPerTrip: 1000, // assume ~1,000 km short-haul flight
+  showerMinutes: 7.8, // EPA WaterSense technical eval baseline
+  showerGpm: 2.5, // EPA WaterSense standard showerhead flow
+  kwhPerGallonHeated: 0.16452 // EPA WaterSense data (electric)
+};
+
 function toFixed(value, digits = 1) {
   return Number(value || 0).toFixed(digits);
 }
@@ -452,6 +461,24 @@ function Dashboard() {
     }
   }, [refresh]);
 
+  const equivalents = useMemo(() => {
+    const kg = totals.carbonKg || 0;
+    const miles = kg / EQUIVALENCY_FACTORS.carKgPerMile;
+    const flightKg = EQUIVALENCY_FACTORS.flightKgPerPassengerKm * EQUIVALENCY_FACTORS.flightKmPerTrip;
+    const flights = flightKg > 0 ? kg / flightKg : 0;
+
+    const gallonsPerShower = EQUIVALENCY_FACTORS.showerGpm * EQUIVALENCY_FACTORS.showerMinutes;
+    const kwhPerShower = gallonsPerShower * EQUIVALENCY_FACTORS.kwhPerGallonHeated;
+    const showers = kwhPerShower > 0 ? (totals.energyKwh || 0) / kwhPerShower : 0;
+
+    return {
+      miles,
+      flights,
+      showers,
+      kwhPerShower
+    };
+  }, [totals]);
+
   return (
     <div className="page">
       <header className="hero">
@@ -512,6 +539,42 @@ function Dashboard() {
           value={`${toFixed(llmTotals.carbonKg, 0)} kgCO₂e`}
           subtext="Browser LLM usage"
         />
+      </section>
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Equivalents</h2>
+            <p className="muted">
+              Interpreting emissions as everyday activities.
+            </p>
+          </div>
+        </div>
+        <div className="table">
+          <div className="table-header">
+            <span>Equivalent</span>
+            <span>Estimate</span>
+            <span>Assumption</span>
+            <span>Basis</span>
+          </div>
+          <div className="table-row">
+            <span>Car miles driven</span>
+            <span>{toFixed(equivalents.miles, 0)} miles</span>
+            <span>Avg gasoline passenger vehicle</span>
+            <span>CO₂e</span>
+          </div>
+          <div className="table-row">
+            <span>Short‑haul flights</span>
+            <span>{toFixed(equivalents.flights, 1)} flights</span>
+            <span>~1,000 km economy</span>
+            <span>CO₂e</span>
+          </div>
+          <div className="table-row">
+            <span>Showers</span>
+            <span>{toFixed(equivalents.showers, 0)} showers</span>
+            <span>{toFixed(equivalents.kwhPerShower, 2)} kWh per shower</span>
+            <span>Energy</span>
+          </div>
+        </div>
       </section>
       {status && <p className="status">{status}</p>}
 
