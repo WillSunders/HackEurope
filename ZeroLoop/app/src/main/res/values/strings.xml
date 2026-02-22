@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Wattprint</string>
+    <string name="start_monitoring">Start Monitoring</string>
+    <string name="pause_monitoring">Pause Monitoring</string>
+    <string name="import_history">Import History</string>
+    <string name="no_data">No data yet. Start monitoring to see your Wattprint.</string>
+    <string name="tap_start">Tap Start to begin monitoring</string>
+    <string name="cached_data_header">Cached Data:\n------------\n</string>
+    <string name="import_not_needed">Import is not needed while monitoring is active.</string>
+</resources>
