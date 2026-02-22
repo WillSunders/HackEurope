@@ -88,9 +88,9 @@ function registerDashboardRoutes(router, { supabaseService, mockUsage, mockTimeS
   });
 
   router.get("/api/dashboard/breakdown", async (req, res) => {
-    const groupKey = req.query.groupBy || "team";
+    const groupKey = req.query.groupBy || "service";
     const source = req.query.source || "compute";
-    const allowedKeys = new Set(["team", "service", "user", "device", "region"]);
+    const allowedKeys = new Set(["service", "user", "device", "region"]);
     if (!allowedKeys.has(groupKey)) {
       return res.status(400).json({ error: "Invalid groupBy value." });
     }
@@ -116,10 +116,29 @@ function registerDashboardRoutes(router, { supabaseService, mockUsage, mockTimeS
       }
 
       const grouped = groupBy(usage, groupKey);
+      // Convert device Sets to strings for JSON serialization
+      const processedData = Object.values(grouped).map(item => {
+        let deviceStr;
+        if (typeof item.device === 'string') {
+          deviceStr = item.device;
+        } else if (item.device && item.device.size > 0) {
+          deviceStr = Array.from(item.device).join(', ');
+        } else {
+          deviceStr = '-';
+        }
+        // Truncate device names longer than 20 characters
+        if (deviceStr && deviceStr.length > 20) {
+          deviceStr = deviceStr.substring(0, 17) + '...';
+        }
+        return {
+          ...item,
+          device: deviceStr
+        };
+      });
       res.json({
         groupBy: groupKey,
         source,
-        data: Object.values(grouped).sort((a, b) => b.energyKwh - a.energyKwh)
+        data: processedData.sort((a, b) => b.energyKwh - a.energyKwh)
       });
     } catch (err) {
       console.error(err);

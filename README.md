@@ -1,6 +1,6 @@
 # HackEurope
 
-CarbonOps Network demo with Stripe Climate checkout, a React dashboard, and a metrics ingestion Lambda.
+Wattprint demo with Stripe Climate checkout, a React dashboard, and a metrics ingestion Lambda.
 
 ## What this does
 - Fetches Stripe Climate price per metric ton.

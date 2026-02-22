@@ -105,15 +105,37 @@ function filterUsage(records, { from, to, device, user }) {
     });
 }
 
+function truncateString(str, maxLength = 20) {
+    if (!str || str.length <= maxLength) return str;
+    return str.substring(0, maxLength - 3) + '...';
+}
+
 function groupBy(records, key) {
     return records.reduce((acc, record) => {
         const value = record[key] || "unknown";
         if (!acc[value]) {
-            acc[value] = { key: value, energyKwh: 0, carbonKg: 0, cost: 0 };
+            acc[value] = { 
+                key: value, 
+                energyKwh: 0, 
+                carbonKg: 0, 
+                cost: 0,
+                device: key === "device" ? value : new Set()
+            };
         }
         acc[value].energyKwh += record.energyKwh;
         acc[value].carbonKg += record.carbonKg;
         acc[value].cost += record.cost;
+        
+        // Collect all devices when not grouping by device
+        if (key !== "device") {
+            if (record.device) {
+                acc[value].device.add(record.device);
+            } else {
+                // Add placeholder for missing device info
+                acc[value].device.add("Unknown");
+            }
+        }
+        
         return acc;
     }, {});
 }

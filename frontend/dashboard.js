@@ -7,6 +7,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 
 const EQUIVALENCY_FACTORS = {
     carKgPerMile: 0.393,
+    carKgPerKm: 0.393 / 1.60934, // Convert miles to km
     flightKgPerPassengerKm: 0.10794,
     flightKmPerTrip: 1000,
     showerMinutes: 7.8,
@@ -32,31 +33,33 @@ function buildQuery(params) {
 function useDashboardData() {
     const [summary, setSummary] = useState(null);
     const [breakdown, setBreakdown] = useState([]);
-    const [groupBy, setGroupBy] = useState("team");
+    const [groupBy, setGroupBy] = useState("service");
     const [breakdownSource, setBreakdownSource] = useState("compute");
     const [loading, setLoading] = useState(true);
-    const [teamBreakdown, setTeamBreakdown] = useState([]);
-    const [llmTeamBreakdown, setLlmTeamBreakdown] = useState([]);
+    const [uniqueDevices, setUniqueDevices] = useState([]);
 
     async function load(group) {
-        const [summaryRes, breakdownRes, teamRes, llmTeamRes] = await Promise.all([
+        const [summaryRes, breakdownRes] = await Promise.all([
             fetch("/api/dashboard/summary"),
             fetch(
-                `/api/dashboard/breakdown${buildQuery({ groupBy: group, source: breakdownSource })}`,
+                `/api/dashboard/breakdown${buildQuery({ groupBy: "device", source: breakdownSource })}`,
             ),
-            fetch("/api/dashboard/breakdown?groupBy=team&source=compute"),
-            fetch("/api/dashboard/breakdown?groupBy=team&source=llm"),
         ]);
 
-        if (!summaryRes.ok || !breakdownRes.ok || !teamRes.ok) {
+        if (!summaryRes.ok || !breakdownRes.ok) {
             throw new Error("Unable to load dashboard data.");
         }
 
+        const summaryData = await summaryRes.json();
+        const deviceBreakdownData = await breakdownRes.json();
+
+        // Extract unique devices from the device breakdown data
+        const allDevices = deviceBreakdownData.data?.map(item => item.key) || [];
+
         return {
-            summaryData: await summaryRes.json(),
-            breakdownData: await breakdownRes.json(),
-            teamData: await teamRes.json(),
-            llmTeamData: llmTeamRes.ok ? await llmTeamRes.json() : { data: [] },
+            summaryData,
+            breakdownData: deviceBreakdownData, // We'll load the actual breakdown data separately
+            devices: allDevices.sort()
         };
     }
 
@@ -65,13 +68,18 @@ function useDashboardData() {
         async function run() {
             setLoading(true);
             try {
-                const { summaryData, breakdownData, teamData, llmTeamData } =
-                    await load(groupBy);
+                const { summaryData, devices } = await load(groupBy);
+                
+                // Load the actual breakdown data with the correct groupBy
+                const actualBreakdownRes = await fetch(
+                    `/api/dashboard/breakdown${buildQuery({ groupBy: groupBy, source: breakdownSource })}`,
+                );
+                const actualBreakdownData = await actualBreakdownRes.json();
+                
                 if (alive) {
                     setSummary(summaryData);
-                    setBreakdown(breakdownData.data || []);
-                    setTeamBreakdown(teamData.data || []);
-                    setLlmTeamBreakdown(llmTeamData.data || []);
+                    setBreakdown(actualBreakdownData.data || []);
+                    setUniqueDevices(devices);
                 }
             } catch (err) {
                 console.error(err);
@@ -88,12 +96,17 @@ function useDashboardData() {
     async function refresh() {
         setLoading(true);
         try {
-            const { summaryData, breakdownData, teamData, llmTeamData } =
-                await load(groupBy);
+            const { summaryData, devices } = await load(groupBy);
+            
+            // Load the actual breakdown data with the correct groupBy
+            const actualBreakdownRes = await fetch(
+                `/api/dashboard/breakdown${buildQuery({ groupBy: groupBy, source: breakdownSource })}`,
+            );
+            const actualBreakdownData = await actualBreakdownRes.json();
+            
             setSummary(summaryData);
-            setBreakdown(breakdownData.data || []);
-            setTeamBreakdown(teamData.data || []);
-            setLlmTeamBreakdown(llmTeamData.data || []);
+            setBreakdown(actualBreakdownData.data || []);
+            setUniqueDevices(devices);
         } catch (err) {
             console.error(err);
         } finally {
@@ -104,8 +117,7 @@ function useDashboardData() {
     return {
         summary,
         breakdown,
-        teamBreakdown,
-        llmTeamBreakdown,
+        uniqueDevices,
         groupBy,
         setGroupBy,
         breakdownSource,
@@ -122,7 +134,7 @@ function TopNav({ totalKg, totalTons }) {
         <nav className="topnav">
             <div className="topnav-logo">
                 <span className="topnav-logo-dot" />
-                CarbonOps Network
+                Wattprint
             </div>
             <div className="topnav-right">
                 <span className="topnav-tag">EU Compute</span>
@@ -197,24 +209,25 @@ function BreakdownTable({ data, groupBy }) {
     }
     const groupLabel =
         {
-            team: "Team",
             service: "Service",
             device: "Device",
             user: "User",
             region: "Region",
-        }[groupBy] || "Group";
+        }[groupBy] || groupBy;
 
     return (
         <div className="table">
-            <div className="table-header">
+            <div className={`table-header ${groupBy === "device" ? "device-grouping" : ""}`}>
                 <span>{groupLabel}</span>
+                {groupBy !== "device" && <span>Device</span>}
                 <span>kWh</span>
                 <span>kgCO₂e</span>
                 <span>Cost</span>
             </div>
             {data.map((row) => (
-                <div key={row.key} className="table-row">
+                <div key={row.key} className={`table-row ${groupBy === "device" ? "device-grouping" : ""}`}>
                     <span>{row.key}</span>
+                    {groupBy !== "device" && <span>{row.device || '-'}</span>}
                     <span>{toFixed(row.energyKwh, 0)}</span>
                     <span>{toFixed(row.carbonKg, 0)}</span>
                     <span>{currencyFormatter.format(row.cost)}</span>
@@ -224,7 +237,7 @@ function BreakdownTable({ data, groupBy }) {
     );
 }
 
-function ExportPanel() {
+function ExportPanel({ uniqueDevices = [] }) {
     const [filters, setFilters] = useState({
         from: "",
         to: "",
@@ -291,12 +304,17 @@ function ExportPanel() {
                 </label>
                 <label>
                     Device
-                    <input
-                        type="text"
-                        value={filters.device}
-                        onChange={update("device")}
-                        placeholder="A100"
-                    />
+                    <select value={filters.device} onChange={update("device")}>
+                        <option value="">All devices</option>
+                        {uniqueDevices.map((device) => {
+                            const displayDevice = device.length > 20 ? device.substring(0, 17) + '...' : device;
+                            return (
+                                <option key={device} value={device} title={device}>
+                                    {displayDevice}
+                                </option>
+                            );
+                        })}
+                    </select>
                 </label>
                 <label>
                     User
@@ -321,182 +339,13 @@ function ExportPanel() {
     );
 }
 
-function ReceiptPanel() {
-    const [period, setPeriod] = useState("2026-02");
-    const [receipt, setReceipt] = useState(null);
-    const [status, setStatus] = useState("");
-
-    async function loadReceipt() {
-        setStatus("Generating receipt...");
-        const response = await fetch(`/api/receipts${buildQuery({ period })}`);
-        if (!response.ok) {
-            setStatus("Unable to load receipt.");
-            return;
-        }
-        const data = await response.json();
-        setReceipt(data);
-        setStatus("");
-    }
-
-    async function downloadReceipt() {
-        if (!receipt) return;
-        const blob = new Blob([JSON.stringify(receipt, null, 2)], {
-            type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `carbonops-receipt-${period}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-    }
-
-    return (
-        <div className="panel">
-            <div>
-                <h2>Removal Receipt</h2>
-                <p className="muted">
-                    Pull a Stripe Climate order receipt for the selected billing period.
-                </p>
-            </div>
-            <div className="filters">
-                <label>
-                    Period (YYYY-MM)
-                    <input
-                        type="text"
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value)}
-                        placeholder="2026-02"
-                    />
-                </label>
-                <button onClick={loadReceipt}>Load Receipt</button>
-                <button onClick={downloadReceipt} disabled={!receipt}>
-                    Download
-                </button>
-            </div>
-            {status && <p className="status">{status}</p>}
-            {receipt && (
-                <div className="receipt">
-                    <p>
-                        <strong>Status:</strong> {receipt.status}
-                    </p>
-                    <p>
-                        <strong>Stripe Climate Order:</strong>{" "}
-                        {receipt.stripeClimateOrderId || "Pending"}
-                    </p>
-                    <p>
-                        <strong>Offset kgCO₂e:</strong> {receipt.offsetKg}
-                    </p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function PaymentPanel({ computeTeams, llmTeams, onPaid }) {
-    const [source, setSource] = useState("compute");
-    const [team, setTeam] = useState(computeTeams[0]?.key || "");
-    const [percentage, setPercentage] = useState(50);
-    const [status, setStatus] = useState("");
-
-    useEffect(() => {
-        const currentTeams = source === "llm" ? llmTeams : computeTeams;
-        if (currentTeams.length && !team) {
-            setTeam(currentTeams[0].key);
-        }
-    }, [computeTeams, llmTeams, team, source]);
-
-    const teams = source === "llm" ? llmTeams : computeTeams;
-    const selected = teams.find((entry) => entry.key === team);
-    const selectedKg = selected ? (selected.carbonKg * percentage) / 100 : 0;
-    const metricTons = selectedKg / 1000;
-
-    async function startCheckout() {
-        if (!metricTons || metricTons <= 0) {
-            setStatus("Select a team with emissions to offset.");
-            return;
-        }
-        setStatus("Redirecting to Stripe Checkout...");
-        const response = await fetch("/api/checkout/session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                metricTons,
-                team,
-                note: `Offset ${percentage}% of ${team} (${source})`,
-            }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            setStatus(data.error || "Unable to start checkout.");
-            return;
-        }
-        window.location.href = data.url;
-    }
-
-    return (
-        <div className="panel">
-            <div>
-                <h2>Offset a Team</h2>
-                <p className="muted">
-                    Pay to offset a portion of a team's emissions. Payments update removal
-                    totals once Stripe confirms the checkout.
-                </p>
-            </div>
-            <div className="filters">
-                <label>
-                    Source
-                    <select value={source} onChange={(e) => setSource(e.target.value)}>
-                        <option value="compute">Compute</option>
-                        <option value="llm">LLM</option>
-                    </select>
-                </label>
-                <label>
-                    Team
-                    <select value={team} onChange={(e) => setTeam(e.target.value)}>
-                        {teams.map((entry) => (
-                            <option key={entry.key} value={entry.key}>
-                                {entry.key}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label>
-                    Portion (%)
-                    <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={percentage}
-                        onChange={(e) => setPercentage(Number(e.target.value || 0))}
-                    />
-                </label>
-                <label>
-                    Offset Amount
-                    <input
-                        type="text"
-                        readOnly
-                        value={`${toFixed(selectedKg, 0)} kgCO₂e (${toFixed(metricTons, 2)} tons)`}
-                    />
-                </label>
-                <button onClick={startCheckout}>Pay with Stripe</button>
-            </div>
-            {status && <p className="status">{status}</p>}
-            <button className="ghost" onClick={onPaid}>
-                Refresh status
-            </button>
-        </div>
-    );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 function Dashboard() {
     const {
         summary,
         breakdown,
-        teamBreakdown,
-        llmTeamBreakdown,
+        uniqueDevices,
         groupBy,
         setGroupBy,
         breakdownSource,
@@ -545,7 +394,7 @@ function Dashboard() {
 
     const equivalents = useMemo(() => {
         const kg = totals.carbonKg || 0;
-        const miles = kg / EQUIVALENCY_FACTORS.carKgPerMile;
+        const km = kg / EQUIVALENCY_FACTORS.carKgPerKm;
         const flightKg =
             EQUIVALENCY_FACTORS.flightKgPerPassengerKm *
             EQUIVALENCY_FACTORS.flightKmPerTrip;
@@ -556,7 +405,7 @@ function Dashboard() {
             gallonsPerShower * EQUIVALENCY_FACTORS.kwhPerGallonHeated;
         const showers =
             kwhPerShower > 0 ? (totals.energyKwh || 0) / kwhPerShower : 0;
-        return { miles, flights, showers, kwhPerShower };
+        return { km, flights, showers, kwhPerShower };
     }, [totals]);
 
     const timeSeries = summary?.timeSeries || [];
@@ -569,7 +418,7 @@ function Dashboard() {
                 {/* Hero */}
                 <header className="hero">
                     <div>
-                        <p className="eyebrow">CarbonOps Network</p>
+                        <p className="eyebrow">Wattprint</p>
                         <h1>Carbon Intelligence Dashboard</h1>
                         <p className="subhead">
                             Track compute energy, emissions, and automated removal with Stripe
@@ -592,7 +441,7 @@ function Dashboard() {
                         </div>
                         <div className="hero-callout-divider" />
                         <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
-                            Forecast-aware optimisation ready
+                            Wattprint — know your footprint, close the loop
                         </span>
                     </div>
                 </header>
@@ -608,11 +457,11 @@ function Dashboard() {
                     <Card
                         label="Total Emissions"
                         value={`${toFixed(totals.carbonKg, 0)} kgCO₂e`}
-                        subtext="Scope 2 estimate"
+                        subtext="Cumulative total"
                         loading={loading}
                     />
                     <Card
-                        label="Compute Cost"
+                        label="Removal Cost"
                         value={currencyFormatter.format(totals.cost)}
                         subtext="Power and infra cost"
                         loading={loading}
@@ -630,7 +479,7 @@ function Dashboard() {
                     <Card
                         label="Compute Energy"
                         value={`${toFixed(computeTotals.energyKwh, 0)} kWh`}
-                        subtext="Compute workloads"
+                        subtext="Device consumption"
                         loading={loading}
                     />
                     <Card
@@ -642,7 +491,7 @@ function Dashboard() {
                     <Card
                         label="Compute Emissions"
                         value={`${toFixed(computeTotals.carbonKg, 0)} kgCO₂e`}
-                        subtext="Compute workloads"
+                        subtext="Device consumption"
                         loading={loading}
                     />
                     <Card
@@ -671,8 +520,8 @@ function Dashboard() {
                             <span>Basis</span>
                         </div>
                         <div className="table-row">
-                            <span>Car miles driven</span>
-                            <span>{toFixed(equivalents.miles, 0)} miles</span>
+                            <span>Car km driven</span>
+                            <span>{toFixed(equivalents.km, 0)} km</span>
                             <span>Avg gasoline passenger vehicle</span>
                             <span>CO₂e</span>
                         </div>
@@ -733,7 +582,7 @@ function Dashboard() {
                                     value={breakdownSource}
                                     onChange={(e) => setBreakdownSource(e.target.value)}
                                 >
-                                    <option value="compute">Compute</option>
+                                    <option value="compute">Hardware</option>
                                     <option value="llm">LLM</option>
                                     <option value="all">All</option>
                                 </select>
@@ -744,7 +593,6 @@ function Dashboard() {
                                     value={groupBy}
                                     onChange={(e) => setGroupBy(e.target.value)}
                                 >
-                                    <option value="team">Team</option>
                                     <option value="service">Service</option>
                                     <option value="device">Device</option>
                                     <option value="user">User</option>
@@ -760,17 +608,11 @@ function Dashboard() {
                     )}
                 </section>
 
-                <PaymentPanel
-                    computeTeams={teamBreakdown}
-                    llmTeams={llmTeamBreakdown}
-                    onPaid={refresh}
-                />
-                <ExportPanel />
-                <ReceiptPanel />
+                <ExportPanel uniqueDevices={uniqueDevices} />
 
                 <footer className="footer">
                     <p>
-                        CarbonOps Network · EU compute telemetry · Stripe Climate integrated
+                        Wattprint · EU compute telemetry · Stripe Climate integrated
                     </p>
                 </footer>
             </div>

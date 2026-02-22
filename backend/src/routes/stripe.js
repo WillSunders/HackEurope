@@ -128,18 +128,6 @@ function registerStripeRoutes(router, { stripe, state, config }) {
     });
   });
 
-  router.get("/api/receipts", (req, res) => {
-    const period = req.query.period || "2026-02";
-    const order = state.climateOrders[state.climateOrders.length - 1];
-    res.json({
-      period,
-      receiptId: `receipt_${period.replace("-", "")}`,
-      stripeClimateOrderId: order ? order.id : null,
-      offsetKg: order ? Math.round(order.metricTons * 1000) : 0,
-      status: order ? "confirmed" : "pending"
-    });
-  });
-
   router.post("/api/checkout/session", async (req, res) => {
     try {
       const metricTons = Number(req.body.metricTons);

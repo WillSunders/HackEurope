@@ -191,6 +191,7 @@ h1 {
   font-size: 1.6rem;
   color: var(--night);
   font-family: "Syne", sans-serif;
+  line-height: 1.2;
 }
 
 .card-sub {
@@ -350,10 +351,21 @@ h1 {
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr;
+  grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr 0.7fr;
   gap: 12px;
   align-items: center;
   min-width: 480px;
+}
+
+.table-header.device-grouping,
+.table-row.device-grouping {
+  grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr;
+}
+
+.table-header span:nth-child(4),
+.table-row span:nth-child(4) {
+  text-align: right;
+  justify-self: end;
 }
 
 .table-header {
@@ -382,7 +394,7 @@ h1 {
 .filters {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 180px));
   align-items: end;
 }
 
@@ -445,7 +457,7 @@ button:hover:not(:disabled) {
   box-shadow: 0 12px 20px rgba(249, 115, 22, 0.35);
 }
 
-/* ── Status / Receipt ── */
+/* ── Status ── */
 .status {
   background: #fff7ed;
   border: 1px solid #fed7aa;
@@ -457,14 +469,6 @@ button:hover:not(:disabled) {
 .status.error {
   background: #fff1f2;
   border-color: #fecdd3;
-}
-
-.receipt {
-  background: #fff;
-  border-radius: 14px;
-  padding: 14px;
-  display: grid;
-  gap: 6px;
 }
 
 /* ── Footer ── */
