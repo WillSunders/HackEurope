@@ -11,12 +11,16 @@ async function load() {
     deviceId = "",
     apiUrl = "http://localhost:4242",
     enableUpload = false,
+    modelOverride = "",
+    lastDetectedModel = "",
   } = await chrome.storage.local.get([
     "orgId",
     "userId",
     "deviceId",
     "apiUrl",
     "enableUpload",
+    "modelOverride",
+    "lastDetectedModel",
   ]);
 
   document.getElementById("tokens").textContent = String(totalTokens);
@@ -33,6 +37,8 @@ async function load() {
   document.getElementById("deviceId").value = deviceId;
   document.getElementById("apiUrl").value = apiUrl;
   document.getElementById("enableUpload").checked = Boolean(resolvedEnableUpload);
+  document.getElementById("modelOverride").value = modelOverride;
+  document.getElementById("detectedModel").textContent = lastDetectedModel || "-";
 
   if (!userId || enableUpload !== resolvedEnableUpload) {
     await chrome.storage.local.set({
@@ -54,6 +60,7 @@ document.getElementById("save").addEventListener("click", async () => {
     deviceId: document.getElementById("deviceId").value.trim(),
     apiUrl: document.getElementById("apiUrl").value.trim(),
     enableUpload: document.getElementById("enableUpload").checked,
+    modelOverride: document.getElementById("modelOverride").value.trim(),
   });
 });
 

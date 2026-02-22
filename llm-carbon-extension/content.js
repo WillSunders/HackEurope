@@ -2,8 +2,32 @@ console.log("LLM Energy Estimator: content.js running on", location.href);
 
 const TOKENS_PER_CHAR = 1 / 4;            // rough heuristic for English
 const KG_CO2_PER_KWH = 0.187;             // used only for migration fallback
-const KWH_PER_1K_TOKENS = 0.00027;        // placeholder energy coefficient
 const MWH_PER_KWH = 1000000;              // 1 kWh = 1,000,000 mWh
+
+let MODEL_COEFFICIENTS = { default: { kwhPer1kTokens: 0.00027 } };
+
+async function loadModelCoefficients() {
+  try {
+    const url = chrome.runtime.getURL("model_coefficients.json");
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const data = await response.json();
+    const baselineModel = data.baseline_model || "gpt-4.1";
+    const baselineKwh = Number(data.baseline_kwh_per_1k_tokens || 0.00027);
+    const priceMap = data.price_per_mtok || {};
+    const basePrice = Number(priceMap[baselineModel]) || 1;
+
+    const computed = {};
+    for (const [model, price] of Object.entries(priceMap)) {
+      const ratio = Number(price) / basePrice;
+      computed[model] = { kwhPer1kTokens: baselineKwh * ratio };
+    }
+    computed.default = { kwhPer1kTokens: baselineKwh };
+    MODEL_COEFFICIENTS = computed;
+  } catch (e) {
+    console.warn("LLM Energy Estimator: failed to load coefficients", e);
+  }
+}
 
 // ---- Extension lifecycle safety ----
 let EXT_CONTEXT_VALID = true;
@@ -46,6 +70,7 @@ async function getSettings() {
     "deviceId",
     "apiUrl",
     "enableUpload",
+    "modelOverride"
   ]);
   return {
     orgId: res?.orgId || "",
@@ -53,6 +78,7 @@ async function getSettings() {
     deviceId: res?.deviceId || "",
     apiUrl: res?.apiUrl || "http://localhost:4242",
     enableUpload: Boolean(res?.enableUpload),
+    modelOverride: res?.modelOverride || ""
   };
 }
 
@@ -86,6 +112,76 @@ async function sendRecord(record, settings) {
 function estimateTokens(text) {
   if (!text) return 0;
   return Math.max(1, Math.round(text.length * TOKENS_PER_CHAR));
+}
+
+function normalizeModelName(raw) {
+  if (!raw) return "";
+  return String(raw).trim().toLowerCase();
+}
+
+function detectModelFromChatGPT() {
+  const candidates = [
+    "[data-testid='model-switcher']",
+    "[data-testid='model-switcher-button']",
+    "button[aria-haspopup='menu']",
+    "button[aria-label*='Model']"
+  ];
+  for (const sel of candidates) {
+    const el = document.querySelector(sel);
+    if (el && el.innerText) return el.innerText.trim();
+  }
+  return "";
+}
+
+function detectModelFromClaude() {
+  const candidates = [
+    "[data-testid='model-switcher']",
+    "button[aria-haspopup='listbox']",
+    "button[aria-label*='Model']"
+  ];
+  for (const sel of candidates) {
+    const el = document.querySelector(sel);
+    if (el && el.innerText) return el.innerText.trim();
+  }
+  return "";
+}
+
+function detectModelFromGemini() {
+  const candidates = [
+    "[data-testid='model-picker']",
+    "button[aria-label*='Model']",
+    "button[aria-haspopup='menu']"
+  ];
+  for (const sel of candidates) {
+    const el = document.querySelector(sel);
+    if (el && el.innerText) return el.innerText.trim();
+  }
+  return "";
+}
+
+function detectModelFromPage() {
+  const host = location.hostname;
+  let raw = "";
+  if (host.includes("chatgpt.com")) raw = detectModelFromChatGPT();
+  else if (host.includes("claude.ai")) raw = detectModelFromClaude();
+  else if (host.includes("gemini.google.com")) raw = detectModelFromGemini();
+  return normalizeModelName(raw);
+}
+
+function resolveModel(settings) {
+  const override = normalizeModelName(settings.modelOverride);
+  if (override) return override;
+  const detected = detectModelFromPage();
+  return detected || "default";
+}
+
+function modelCoefficient(modelName) {
+  if (MODEL_COEFFICIENTS[modelName]) return MODEL_COEFFICIENTS[modelName];
+  const fallbackKey = Object.keys(MODEL_COEFFICIENTS).find((key) =>
+    modelName.includes(key)
+  );
+  if (fallbackKey) return MODEL_COEFFICIENTS[fallbackKey];
+  return MODEL_COEFFICIENTS.default;
 }
 
 // --- Simple hash for dedupe keys (fast + good enough for this use) ---
@@ -226,6 +322,8 @@ async function scanAndCount() {
   const state = await getState();
   let { totalTokens, totalEnergyKwh, countedSet } = state;
   const settings = await getSettings();
+  const modelName = resolveModel(settings);
+  await safeStorageSet({ lastDetectedModel: modelName });
 
   let addedTokens = 0;
   let newlyCounted = 0;
@@ -247,7 +345,8 @@ async function scanAndCount() {
 
   if (addedTokens > 0) {
     totalTokens += addedTokens;
-    const addedEnergyKwh = (addedTokens / 1000) * KWH_PER_1K_TOKENS;
+    const coeff = modelCoefficient(modelName);
+    const addedEnergyKwh = (addedTokens / 1000) * coeff.kwhPer1kTokens;
     totalEnergyKwh += addedEnergyKwh;
     await saveState(totalTokens, totalEnergyKwh, countedSet);
 
@@ -257,7 +356,7 @@ async function scanAndCount() {
         user_id: settings.userId,
         device_id: settings.deviceId,
         start_time: new Date().toISOString(),
-        state: "LLM usage",
+        state: `LLM usage (${modelName || "unknown"})`,
         duration_seconds: 0,
         energy_drained_mwh: Number((addedEnergyKwh * MWH_PER_KWH).toFixed(4)),
       };
@@ -290,6 +389,7 @@ function scheduleScan() {
   }, 300);
 }
 
+loadModelCoefficients();
 ensureBadge();
 scheduleScan();
 

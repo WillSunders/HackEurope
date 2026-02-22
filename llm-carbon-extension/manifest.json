@@ -14,6 +14,16 @@
     "https://gemini.google.com/*",
     "http://localhost:4242/*"
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["model_coefficients.json"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
