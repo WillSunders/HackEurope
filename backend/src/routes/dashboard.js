@@ -9,25 +9,60 @@ const {
 function registerDashboardRoutes(router, { supabaseService, mockUsage, mockTimeSeries, config, state }) {
   const { carbonIntensityKgPerKwh, costPerKwh } = config;
 
-  async function loadUsage(filters) {
-    const metrics = (await supabaseService.fetchEnergyMetrics(filters)) || [];
-    if (!metrics.length) return { usage: mockUsage, usingMock: true };
+  async function loadUsage(source, filters) {
+    const metrics =
+      source === "llm"
+        ? (await supabaseService.fetchLlmMetrics(filters)) || []
+        : (await supabaseService.fetchEnergyMetrics(filters)) || [];
+    if (!metrics.length && source === "compute") {
+      return { usage: mockUsage, usingMock: true };
+    }
     return {
-      usage: metricsToUsage(metrics, { carbonIntensityKgPerKwh, costPerKwh }),
+      usage: metrics.length
+        ? metricsToUsage(metrics, { carbonIntensityKgPerKwh, costPerKwh })
+        : [],
       usingMock: false
     };
   }
 
+  function mergeUsage(a, b) {
+    return [...a, ...b];
+  }
+
   router.get("/api/dashboard/summary", async (req, res) => {
     try {
-      const { usage, usingMock } = await loadUsage({
+      const { usage: computeUsage, usingMock } = await loadUsage("compute", {
+        from: req.query.from,
+        to: req.query.to
+      });
+      const { usage: llmUsage } = await loadUsage("llm", {
         from: req.query.from,
         to: req.query.to
       });
 
-      const totalEnergy = usage.reduce((sum, item) => sum + item.energyKwh, 0);
-      const totalCarbon = usage.reduce((sum, item) => sum + item.carbonKg, 0);
-      const totalCost = usage.reduce((sum, item) => sum + item.cost, 0);
+      const allUsage = mergeUsage(computeUsage, llmUsage);
+
+      const totalEnergy = allUsage.reduce((sum, item) => sum + item.energyKwh, 0);
+      const totalCarbon = allUsage.reduce((sum, item) => sum + item.carbonKg, 0);
+      const totalCost = allUsage.reduce((sum, item) => sum + item.cost, 0);
+      const computeTotals = computeUsage.reduce(
+        (acc, item) => {
+          acc.energyKwh += item.energyKwh;
+          acc.carbonKg += item.carbonKg;
+          acc.cost += item.cost;
+          return acc;
+        },
+        { energyKwh: 0, carbonKg: 0, cost: 0 }
+      );
+      const llmTotals = llmUsage.reduce(
+        (acc, item) => {
+          acc.energyKwh += item.energyKwh;
+          acc.carbonKg += item.carbonKg;
+          acc.cost += item.cost;
+          return acc;
+        },
+        { energyKwh: 0, carbonKg: 0, cost: 0 }
+      );
 
       res.json({
         totals: {
@@ -35,7 +70,11 @@ function registerDashboardRoutes(router, { supabaseService, mockUsage, mockTimeS
           carbonKg: totalCarbon,
           cost: totalCost
         },
-        timeSeries: usingMock ? mockTimeSeries : buildTimeSeries(usage),
+        sources: {
+          compute: computeTotals,
+          llm: llmTotals
+        },
+        timeSeries: usingMock ? mockTimeSeries : buildTimeSeries(allUsage),
         removalStatus: {
           pendingTons: state.pendingTons,
           totalTons: state.totalTons,
@@ -50,22 +89,36 @@ function registerDashboardRoutes(router, { supabaseService, mockUsage, mockTimeS
 
   router.get("/api/dashboard/breakdown", async (req, res) => {
     const groupKey = req.query.groupBy || "team";
+    const source = req.query.source || "compute";
     const allowedKeys = new Set(["team", "service", "user", "device", "region"]);
     if (!allowedKeys.has(groupKey)) {
       return res.status(400).json({ error: "Invalid groupBy value." });
     }
 
     try {
-      const { usage } = await loadUsage({
+      const filters = {
         from: req.query.from,
         to: req.query.to,
         device: req.query.device,
         user: req.query.user
-      });
+      };
+      let usage = [];
+      if (source === "all") {
+        const { usage: computeUsage } = await loadUsage("compute", filters);
+        const { usage: llmUsage } = await loadUsage("llm", filters);
+        usage = mergeUsage(computeUsage, llmUsage);
+      } else {
+        const { usage: selectedUsage } = await loadUsage(
+          source === "llm" ? "llm" : "compute",
+          filters
+        );
+        usage = selectedUsage;
+      }
 
       const grouped = groupBy(usage, groupKey);
       res.json({
         groupBy: groupKey,
+        source,
         data: Object.values(grouped).sort((a, b) => b.energyKwh - a.energyKwh)
       });
     } catch (err) {

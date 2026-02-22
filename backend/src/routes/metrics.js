@@ -16,13 +16,17 @@ function createMetricsRouter({ supabaseService }) {
         const contentType = req.headers["content-type"] || "";
         const payload = parseMetricsPayload(req.body, contentType);
         const records = dedupeMetricRecords(payload.map(normalizeMetricRecord));
+        const targetTable =
+          typeof req.query.target === "string" && req.query.target.trim()
+            ? req.query.target.trim()
+            : "energy_metrics";
 
         if (!records.length) {
           return res.status(400).json({ error: "No records provided." });
         }
 
-        await supabaseService.insertEnergyMetrics(records);
-        res.json({ inserted: records.length });
+        await supabaseService.insertMetrics(records, targetTable);
+        res.json({ inserted: records.length, targetTable });
       } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });

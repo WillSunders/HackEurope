@@ -22,22 +22,26 @@ function useDashboardData() {
   const [summary, setSummary] = useState(null);
   const [breakdown, setBreakdown] = useState([]);
   const [groupBy, setGroupBy] = useState("team");
+  const [breakdownSource, setBreakdownSource] = useState("compute");
   const [loading, setLoading] = useState(true);
   const [teamBreakdown, setTeamBreakdown] = useState([]);
+  const [llmTeamBreakdown, setLlmTeamBreakdown] = useState([]);
 
   async function load(group) {
     const summaryRes = await fetch("/api/dashboard/summary");
     const breakdownRes = await fetch(
-      `/api/dashboard/breakdown${buildQuery({ groupBy: group })}`
+      `/api/dashboard/breakdown${buildQuery({ groupBy: group, source: breakdownSource })}`
     );
-    const teamRes = await fetch("/api/dashboard/breakdown?groupBy=team");
+    const teamRes = await fetch("/api/dashboard/breakdown?groupBy=team&source=compute");
+    const llmTeamRes = await fetch("/api/dashboard/breakdown?groupBy=team&source=llm");
     if (!summaryRes.ok || !breakdownRes.ok || !teamRes.ok) {
       throw new Error("Unable to load dashboard data.");
     }
     const summaryData = await summaryRes.json();
     const breakdownData = await breakdownRes.json();
     const teamData = await teamRes.json();
-    return { summaryData, breakdownData, teamData };
+    const llmTeamData = llmTeamRes.ok ? await llmTeamRes.json() : { data: [] };
+    return { summaryData, breakdownData, teamData, llmTeamData };
   }
 
   useEffect(() => {
@@ -45,11 +49,12 @@ function useDashboardData() {
     async function run() {
       setLoading(true);
       try {
-        const { summaryData, breakdownData, teamData } = await load(groupBy);
+        const { summaryData, breakdownData, teamData, llmTeamData } = await load(groupBy);
         if (alive) {
           setSummary(summaryData);
           setBreakdown(breakdownData.data || []);
           setTeamBreakdown(teamData.data || []);
+          setLlmTeamBreakdown(llmTeamData.data || []);
         }
       } catch (err) {
         console.error(err);
@@ -61,15 +66,16 @@ function useDashboardData() {
     return () => {
       alive = false;
     };
-  }, [groupBy]);
+  }, [groupBy, breakdownSource]);
 
   async function refresh() {
     setLoading(true);
     try {
-      const { summaryData, breakdownData, teamData } = await load(groupBy);
+      const { summaryData, breakdownData, teamData, llmTeamData } = await load(groupBy);
       setSummary(summaryData);
       setBreakdown(breakdownData.data || []);
       setTeamBreakdown(teamData.data || []);
+      setLlmTeamBreakdown(llmTeamData.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -77,7 +83,18 @@ function useDashboardData() {
     }
   }
 
-  return { summary, breakdown, teamBreakdown, groupBy, setGroupBy, loading, refresh };
+  return {
+    summary,
+    breakdown,
+    teamBreakdown,
+    llmTeamBreakdown,
+    groupBy,
+    setGroupBy,
+    breakdownSource,
+    setBreakdownSource,
+    loading,
+    refresh
+  };
 }
 
 function Card({ label, value, subtext }) {
@@ -298,17 +315,20 @@ function ReceiptPanel() {
   );
 }
 
-function PaymentPanel({ teams, onPaid }) {
-  const [team, setTeam] = useState(teams[0]?.key || "");
+function PaymentPanel({ computeTeams, llmTeams, onPaid }) {
+  const [source, setSource] = useState("compute");
+  const [team, setTeam] = useState(computeTeams[0]?.key || "");
   const [percentage, setPercentage] = useState(50);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    if (teams.length && !team) {
-      setTeam(teams[0].key);
+    const currentTeams = source === "llm" ? llmTeams : computeTeams;
+    if (currentTeams.length && !team) {
+      setTeam(currentTeams[0].key);
     }
-  }, [teams, team]);
+  }, [computeTeams, llmTeams, team, source]);
 
+  const teams = source === "llm" ? llmTeams : computeTeams;
   const selected = teams.find((entry) => entry.key === team);
   const selectedKg = selected ? (selected.carbonKg * percentage) / 100 : 0;
   const metricTons = selectedKg / 1000;
@@ -325,7 +345,7 @@ function PaymentPanel({ teams, onPaid }) {
       body: JSON.stringify({
         metricTons,
         team,
-        note: `Offset ${percentage}% of ${team}`
+        note: `Offset ${percentage}% of ${team} (${source})`
       })
     });
     const data = await response.json();
@@ -346,6 +366,13 @@ function PaymentPanel({ teams, onPaid }) {
         </p>
       </div>
       <div className="filters">
+        <label>
+          Source
+          <select value={source} onChange={(e) => setSource(e.target.value)}>
+            <option value="compute">Compute</option>
+            <option value="llm">LLM</option>
+          </select>
+        </label>
         <label>
           Team
           <select value={team} onChange={(e) => setTeam(e.target.value)}>
@@ -385,11 +412,23 @@ function PaymentPanel({ teams, onPaid }) {
 }
 
 function Dashboard() {
-  const { summary, breakdown, teamBreakdown, groupBy, setGroupBy, loading, refresh } =
-    useDashboardData();
+  const {
+    summary,
+    breakdown,
+    teamBreakdown,
+    llmTeamBreakdown,
+    groupBy,
+    setGroupBy,
+    breakdownSource,
+    setBreakdownSource,
+    loading,
+    refresh
+  } = useDashboardData();
   const [status, setStatus] = useState("");
 
   const totals = summary?.totals || { energyKwh: 0, carbonKg: 0, cost: 0 };
+  const computeTotals = summary?.sources?.compute || { energyKwh: 0, carbonKg: 0, cost: 0 };
+  const llmTotals = summary?.sources?.llm || { energyKwh: 0, carbonKg: 0, cost: 0 };
   const removal = summary?.removalStatus || {
     pendingTons: 0,
     totalTons: 0,
@@ -452,6 +491,28 @@ function Dashboard() {
           subtext={removalStatus}
         />
       </section>
+      <section className="cards">
+        <Card
+          label="Compute Energy"
+          value={`${toFixed(computeTotals.energyKwh, 0)} kWh`}
+          subtext="Compute workloads"
+        />
+        <Card
+          label="LLM Energy"
+          value={`${toFixed(llmTotals.energyKwh, 0)} kWh`}
+          subtext="Browser LLM usage"
+        />
+        <Card
+          label="Compute Emissions"
+          value={`${toFixed(computeTotals.carbonKg, 0)} kgCO₂e`}
+          subtext="Compute workloads"
+        />
+        <Card
+          label="LLM Emissions"
+          value={`${toFixed(llmTotals.carbonKg, 0)} kgCO₂e`}
+          subtext="Browser LLM usage"
+        />
+      </section>
       {status && <p className="status">{status}</p>}
 
       <section className="panel">
@@ -486,18 +547,34 @@ function Dashboard() {
             <h2>Breakdown</h2>
             <p className="muted">Slice by team, service, device, user, or region.</p>
           </div>
-          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
-            <option value="team">Team</option>
-            <option value="service">Service</option>
-            <option value="device">Device</option>
-            <option value="user">User</option>
-            <option value="region">Region</option>
-          </select>
+          <div className="filters">
+            <label>
+              Source
+              <select
+                value={breakdownSource}
+                onChange={(e) => setBreakdownSource(e.target.value)}
+              >
+                <option value="compute">Compute</option>
+                <option value="llm">LLM</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label>
+              Group by
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                <option value="team">Team</option>
+                <option value="service">Service</option>
+                <option value="device">Device</option>
+                <option value="user">User</option>
+                <option value="region">Region</option>
+              </select>
+            </label>
+          </div>
         </div>
         {loading ? <p className="status">Loading breakdown...</p> : <BreakdownTable data={breakdown} />}
       </section>
 
-      <PaymentPanel teams={teamBreakdown} onPaid={refresh} />
+      <PaymentPanel computeTeams={teamBreakdown} llmTeams={llmTeamBreakdown} onPaid={refresh} />
       <ExportPanel />
       <ReceiptPanel />
 

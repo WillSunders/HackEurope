@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Energy Estimator",
+  "version": "0.1.0",
+  "description": "Estimates token usage locally and can send energy metrics to a backend.",
+  "action": {
+    "default_title": "LLM Energy Estimator",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "http://localhost:4242/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["model_coefficients.json"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "baseline_model": "gpt-4.1",
+  "baseline_kwh_per_1k_tokens": 0.00027,
+  "price_per_mtok": {
+    "gpt-4.1": 5.0,
+    "gpt-4.1-mini": 1.0,
+    "gpt-4o": 6.756,
+    "gpt-4o-mini": 1.351,
+    "gpt-3.5": 0.75,
+    "claude-3-opus": 45.0,
+    "claude-3.5-sonnet": 9.0,
+    "claude-3-haiku": 2.4,
+    "gemini-1.5-pro": 3.125,
+    "gemini-1.5-flash": 0.1875
+  }
+}
