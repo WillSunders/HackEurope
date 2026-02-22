@@ -117,18 +117,37 @@ function Card({ label, value, subtext }) {
 }
 
 function Chart({ data, metric }) {
-  const maxValue = Math.max(...data.map((d) => d[metric]), 1);
+  const safeData = Array.isArray(data) ? data : [];
+  if (!safeData.length) {
+    return <p className="status">No timeline data.</p>;
+  }
+  const values = safeData.map((d) => Number(d[metric]) || 0);
+  const maxValue = Math.max(...values, 1);
+  const minValue = Math.min(...values, maxValue);
+  const span = Math.max(maxValue - minValue, 1);
+  const normalize = (value) => (value - minValue) / span;
   return (
     <div className="chart">
-      {data.map((point) => (
+      <div className="chart-axis">
+        <span>{maxValue.toFixed(1)}</span>
+        <span>{minValue.toFixed(1)}</span>
+      </div>
+      <div className="chart-bars">
+        {safeData.map((point) => {
+        const value = Number(point[metric]) || 0;
+        const heightPct = Math.max(0.04, normalize(value)) * 100;
+        return (
         <div key={point.date} className="chart-bar">
           <div
             className="chart-fill"
-            style={{ height: `${(point[metric] / maxValue) * 100}%` }}
+            style={{ height: `${heightPct}%` }}
           />
-          <span className="chart-label">{point.date.slice(5)}</span>
+          <span className="chart-label">{String(point.date).slice(5)}</span>
+          <span className="chart-value">{value.toFixed(1)}</span>
         </div>
-      ))}
+      );
+      })}
+      </div>
     </div>
   );
 }
@@ -582,9 +601,6 @@ function Dashboard() {
         <div className="panel-head">
           <div>
             <h2>Energy + Emissions Timeline</h2>
-            <p className="muted">
-              Daily totals across EU regions (mock data for now).
-            </p>
           </div>
           <div className="pill">Last 30 days</div>
         </div>
@@ -595,10 +611,6 @@ function Dashboard() {
             <div>
               <span className="chart-title">kWh</span>
               <Chart data={summary.timeSeries} metric="energyKwh" />
-            </div>
-            <div>
-              <span className="chart-title">kgCO₂e</span>
-              <Chart data={summary.timeSeries} metric="carbonKg" />
             </div>
           </div>
         )}
