@@ -221,7 +221,7 @@ function BreakdownTable({ data, groupBy }) {
                 <span>{groupLabel}</span>
                 {groupBy !== "device" && <span>Device</span>}
                 <span>kWh</span>
-                <span>kgCO₂e</span>
+                <span className="co2-header">KGCO₂E</span>
                 <span>Cost</span>
             </div>
             {data.map((row) => (

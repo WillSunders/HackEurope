@@ -283,7 +283,7 @@ h1 {
 .chart {
   display: grid;
   grid-template-columns: 40px 1fr;
-  gap: 12px;
+  gap: 100px;
   align-items: stretch;
   height: 200px;
   margin-top: 8px;
@@ -351,21 +351,50 @@ h1 {
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr 0.7fr;
-  gap: 12px;
-  align-items: center;
-  min-width: 480px;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr;
+  gap: 100px;
+  align-items: justify;
+  min-width: 600px;
 }
 
 .table-header.device-grouping,
 .table-row.device-grouping {
-  grid-template-columns: 1.2fr 0.7fr 0.7fr 0.7fr;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr;
 }
 
 .table-header span:nth-child(4),
 .table-row span:nth-child(4) {
   text-align: right;
   justify-self: end;
+}
+
+.co2-unit {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.co2-unit .subscript {
+  font-size: 0.7em;
+  vertical-align: sub;
+  line-height: 0;
+}
+
+/* Force subscript rendering */
+sub {
+  font-size: 0.7em !important;
+  vertical-align: sub !important;
+  line-height: 0 !important;
+  position: relative !important;
+  top: 0.2em !important;
+}
+
+/* Specific CO2 header styling */
+.co2-header {
+  font-family: "Arial", "Helvetica", sans-serif !important;
+  font-feature-settings: "subs" on, "dlig" on;
+  -webkit-font-feature-settings: "subs" on, "dlig" on;
+  -moz-font-feature-settings: "subs" on, "dlig" on;
+  -ms-font-feature-settings: "subs" on, "dlig" on;
+  font-variant-position: sub;
 }
 
 .table-header {
