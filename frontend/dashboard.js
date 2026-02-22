@@ -5,6 +5,15 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   currency: "EUR"
 });
 
+const EQUIVALENCY_FACTORS = {
+  carKgPerMile: 0.393, // EPA: 3.93e-4 metric tons CO2e per mile
+  flightKgPerPassengerKm: 0.10794, // UK BEIS/DEFRA 2024 short-haul economy, no RF
+  flightKmPerTrip: 1000, // assume ~1,000 km short-haul flight
+  showerMinutes: 7.8, // EPA WaterSense technical eval baseline
+  showerGpm: 2.5, // EPA WaterSense standard showerhead flow
+  kwhPerGallonHeated: 0.16452 // EPA WaterSense data (electric)
+};
+
 function toFixed(value, digits = 1) {
   return Number(value || 0).toFixed(digits);
 }
@@ -108,18 +117,37 @@ function Card({ label, value, subtext }) {
 }
 
 function Chart({ data, metric }) {
-  const maxValue = Math.max(...data.map((d) => d[metric]), 1);
+  const safeData = Array.isArray(data) ? data : [];
+  if (!safeData.length) {
+    return <p className="status">No timeline data.</p>;
+  }
+  const values = safeData.map((d) => Number(d[metric]) || 0);
+  const maxValue = Math.max(...values, 1);
+  const minValue = Math.min(...values, maxValue);
+  const span = Math.max(maxValue - minValue, 1);
+  const normalize = (value) => (value - minValue) / span;
   return (
     <div className="chart">
-      {data.map((point) => (
+      <div className="chart-axis">
+        <span>{maxValue.toFixed(1)}</span>
+        <span>{minValue.toFixed(1)}</span>
+      </div>
+      <div className="chart-bars">
+        {safeData.map((point) => {
+        const value = Number(point[metric]) || 0;
+        const heightPct = Math.max(0.04, normalize(value)) * 100;
+        return (
         <div key={point.date} className="chart-bar">
           <div
             className="chart-fill"
-            style={{ height: `${(point[metric] / maxValue) * 100}%` }}
+            style={{ height: `${heightPct}%` }}
           />
-          <span className="chart-label">{point.date.slice(5)}</span>
+          <span className="chart-label">{String(point.date).slice(5)}</span>
+          <span className="chart-value">{value.toFixed(1)}</span>
         </div>
-      ))}
+      );
+      })}
+      </div>
     </div>
   );
 }
@@ -452,6 +480,24 @@ function Dashboard() {
     }
   }, [refresh]);
 
+  const equivalents = useMemo(() => {
+    const kg = totals.carbonKg || 0;
+    const miles = kg / EQUIVALENCY_FACTORS.carKgPerMile;
+    const flightKg = EQUIVALENCY_FACTORS.flightKgPerPassengerKm * EQUIVALENCY_FACTORS.flightKmPerTrip;
+    const flights = flightKg > 0 ? kg / flightKg : 0;
+
+    const gallonsPerShower = EQUIVALENCY_FACTORS.showerGpm * EQUIVALENCY_FACTORS.showerMinutes;
+    const kwhPerShower = gallonsPerShower * EQUIVALENCY_FACTORS.kwhPerGallonHeated;
+    const showers = kwhPerShower > 0 ? (totals.energyKwh || 0) / kwhPerShower : 0;
+
+    return {
+      miles,
+      flights,
+      showers,
+      kwhPerShower
+    };
+  }, [totals]);
+
   return (
     <div className="page">
       <header className="hero">
@@ -513,15 +559,48 @@ function Dashboard() {
           subtext="Browser LLM usage"
         />
       </section>
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <h2>Equivalents</h2>
+            <p className="muted">
+              Interpreting emissions as everyday activities.
+            </p>
+          </div>
+        </div>
+        <div className="table">
+          <div className="table-header">
+            <span>Equivalent</span>
+            <span>Estimate</span>
+            <span>Assumption</span>
+            <span>Basis</span>
+          </div>
+          <div className="table-row">
+            <span>Car miles driven</span>
+            <span>{toFixed(equivalents.miles, 0)} miles</span>
+            <span>Avg gasoline passenger vehicle</span>
+            <span>CO₂e</span>
+          </div>
+          <div className="table-row">
+            <span>Short‑haul flights</span>
+            <span>{toFixed(equivalents.flights, 1)} flights</span>
+            <span>~1,000 km economy</span>
+            <span>CO₂e</span>
+          </div>
+          <div className="table-row">
+            <span>Showers</span>
+            <span>{toFixed(equivalents.showers, 0)} showers</span>
+            <span>{toFixed(equivalents.kwhPerShower, 2)} kWh per shower</span>
+            <span>Energy</span>
+          </div>
+        </div>
+      </section>
       {status && <p className="status">{status}</p>}
 
       <section className="panel">
         <div className="panel-head">
           <div>
             <h2>Energy + Emissions Timeline</h2>
-            <p className="muted">
-              Daily totals across EU regions (mock data for now).
-            </p>
           </div>
           <div className="pill">Last 30 days</div>
         </div>
@@ -532,10 +611,6 @@ function Dashboard() {
             <div>
               <span className="chart-title">kWh</span>
               <Chart data={summary.timeSeries} metric="energyKwh" />
-            </div>
-            <div>
-              <span className="chart-title">kgCO₂e</span>
-              <Chart data={summary.timeSeries} metric="carbonKg" />
             </div>
           </div>
         )}

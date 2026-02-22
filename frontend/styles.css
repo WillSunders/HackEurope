@@ -154,17 +154,41 @@ h1 {
 
 .chart {
   display: grid;
-  grid-auto-flow: column;
-  gap: 8px;
-  align-items: end;
-  height: 140px;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: stretch;
+  height: 200px;
   margin-top: 8px;
 }
 
-.chart-bar {
+.chart-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.chart-axis span:last-child {
+  margin-bottom: 2px;
+}
+
+.chart-bars {
   display: grid;
+  grid-auto-flow: column;
+  gap: 8px;
+  align-items: stretch;
+  height: 100%;
+}
+
+.chart-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
   gap: 6px;
-  justify-items: center;
+  height: 100%;
 }
 
 .chart-fill {
@@ -172,11 +196,17 @@ h1 {
   border-radius: 999px;
   background: linear-gradient(180deg, var(--accent), var(--accent-dark));
   transition: height 0.3s ease;
+  min-height: 2px;
 }
 
 .chart-label {
   font-size: 0.7rem;
   color: #64748b;
+}
+
+.chart-value {
+  font-size: 0.7rem;
+  color: #334155;
 }
 
 .table {
