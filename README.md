@@ -113,6 +113,28 @@ docker build -t carbonops .
 docker run --rm -p 4242:4242 --env-file .env carbonops
 ```
 
+## Download the Windows Client
+
+The Windows data collection client runs silently in the background and reports your device's energy usage hourly.
+
+**[⬇ Download main.exe](https://github.com/YOUR_ORG/YOUR_REPO/releases/latest/download/main.exe)**
+
+### Setup
+1. Download `main.exe` above
+2. Double-click to run — no installation needed
+3. If Windows SmartScreen appears, click **"More info" → "Run anyway"** (expected for unsigned builds)
+4. The app registers itself as an hourly background task automatically
+
+That's it. It runs silently from that point on and uploads energy metrics to the dashboard.
+
+### What it collects
+- Laptop battery energy drain (via Windows battery report)
+- Grid zone (detected automatically from your IP)
+
+### Requirements
+- Windows 10 or 11
+- No admin privileges required
+
 ## Notes
 - Everything runs in test mode. No live payments are accepted.
 - Totals are stored in memory. Restarting the server resets totals.
