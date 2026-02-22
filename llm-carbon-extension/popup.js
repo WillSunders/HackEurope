@@ -25,11 +25,21 @@ async function load() {
     (totalCO2g ? (totalCO2g / 1000) / 0.187 : 0);
   document.getElementById("energy").textContent = `${energyKwh.toFixed(4)} kWh`;
 
+  const resolvedUserId = userId || crypto.randomUUID();
+  const resolvedEnableUpload = enableUpload || true;
+
   document.getElementById("orgId").value = orgId;
-  document.getElementById("userId").value = userId;
+  document.getElementById("userId").value = resolvedUserId;
   document.getElementById("deviceId").value = deviceId;
   document.getElementById("apiUrl").value = apiUrl;
-  document.getElementById("enableUpload").checked = Boolean(enableUpload);
+  document.getElementById("enableUpload").checked = Boolean(resolvedEnableUpload);
+
+  if (!userId || enableUpload !== resolvedEnableUpload) {
+    await chrome.storage.local.set({
+      userId: resolvedUserId,
+      enableUpload: resolvedEnableUpload,
+    });
+  }
 }
 
 document.getElementById("reset").addEventListener("click", async () => {
