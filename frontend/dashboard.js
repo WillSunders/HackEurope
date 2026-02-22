@@ -37,7 +37,6 @@ function useDashboardData() {
     const [breakdownSource, setBreakdownSource] = useState("compute");
     const [loading, setLoading] = useState(true);
     const [uniqueDevices, setUniqueDevices] = useState([]);
-
     async function load(group) {
         const [summaryRes, breakdownRes] = await Promise.all([
             fetch("/api/dashboard/summary"),
@@ -339,6 +338,84 @@ function ExportPanel({ uniqueDevices = [] }) {
     );
 }
 
+function PaymentPanel({ totals, computeTotals, llmTotals, onPaid }) {
+    const [source, setSource] = useState("all");
+    const [percentage, setPercentage] = useState(50);
+    const [status, setStatus] = useState("");
+
+    const sourceTotals =
+        source === "compute" ? computeTotals : source === "llm" ? llmTotals : totals;
+    const selectedKg = (sourceTotals?.carbonKg || 0) * (percentage / 100);
+    const metricTons = selectedKg / 1000;
+
+    async function startCheckout() {
+        if (!metricTons || metricTons <= 0) {
+            setStatus("Select a team with emissions to offset.");
+            return;
+        }
+        setStatus("Redirecting to Stripe Checkout...");
+        const response = await fetch("/api/checkout/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                metricTons,
+                note: `Offset ${percentage}% of ${source} totals`,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            setStatus(data.error || "Unable to start checkout.");
+            return;
+        }
+        window.location.href = data.url;
+    }
+
+    return (
+        <section className="panel">
+            <div>
+                <h2>Offset Total Emissions</h2>
+                <p className="muted">
+                    Pay to offset a portion of total emissions. Payments update removal totals
+                    once Stripe confirms the checkout.
+                </p>
+            </div>
+            <div className="filters">
+                <label>
+                    Source
+                    <select value={source} onChange={(e) => setSource(e.target.value)}>
+                        <option value="all">All</option>
+                        <option value="compute">Hardware</option>
+                        <option value="llm">LLM</option>
+                    </select>
+                </label>
+                <label>
+                    Portion (%)
+                    <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={percentage}
+                        onChange={(e) => setPercentage(Number(e.target.value || 0))}
+                    />
+                </label>
+                <label>
+                    Offset Amount
+                    <input
+                        type="text"
+                        readOnly
+                        value={`${toFixed(selectedKg, 0)} kgCO₂e (${toFixed(metricTons, 2)} tons)`}
+                    />
+                </label>
+                <button onClick={startCheckout}>Pay with Stripe</button>
+            </div>
+            {status && <p className="status">{status}</p>}
+            <button className="ghost" onClick={onPaid}>
+                Refresh status
+            </button>
+        </section>
+    );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 function Dashboard() {
@@ -607,6 +684,13 @@ function Dashboard() {
                         <BreakdownTable data={breakdown} groupBy={groupBy} />
                     )}
                 </section>
+
+                <PaymentPanel
+                    totals={totals}
+                    computeTotals={computeTotals}
+                    llmTotals={llmTotals}
+                    onPaid={refresh}
+                />
 
                 <ExportPanel uniqueDevices={uniqueDevices} />
 
